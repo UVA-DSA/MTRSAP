@@ -41,7 +41,14 @@ Please follow the below instructions to setup the code in your environment.
 
 ## Usage
 
+
 To reproduce gesture recognition results use the following command with the original configuration.
+
+*Note that the dataset required is not publicly available. Hence, please reach out to the original authors to obtain the data used for this work.*
+1. [JIGSAWS Dataset](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/)
+2. [TCN Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master)
+
+The model parameters and dataloader scripts needs to be changed to suit custom datasets. The current dataloader and config is designed for the above dataset. 
 
 ``` python train_recognition.py --model transformer --dataloader v2 --modality 16 ```
 
