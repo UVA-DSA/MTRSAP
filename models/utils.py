@@ -1,226 +1,22 @@
-import math
-import itertools
+from .transtcn import *
+from .compasstcn import *
 import torch
-from torch import Tensor
-from torch.nn import Transformer
-import torch.nn as nn
-from sklearn.metrics import classification_report, confusion_matrix
+import torch.optim as optim
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 import numpy as np
+from tqdm import tqdm
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import time
+import os
+import editdistance
+import itertools
 
-
-
-class PositionalEncoding(nn.Module):
-
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        if d_model%2 != 0:
-            pe[:, 1::2] = torch.cos(position * div_term)[:,0:-1]
-        else:
-            pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-    
-
-class TokenEmbedding(nn.Module):
-    def __init__(self, vocab_size: int, emb_size):
-        super(TokenEmbedding, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_size)
-        self.emb_size = emb_size
-
-    def forward(self, tokens: Tensor):
-        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
-    
-
-class ScheduledOptim():
-    ''' A simple wrapper class for learning rate scheduling
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-        sched = ScheduledOptim(optimizer, d_model=..., n_warmup_steps=...)
-    '''
-
-    def __init__(self, optimizer, lr_mul, d_model, n_warmup_steps):
-        self._optimizer = optimizer
-        self.lr_mul = lr_mul
-        self.d_model = d_model
-        self.n_warmup_steps = n_warmup_steps
-        self.n_steps = 0
-
-
-    def step(self):
-        "Step with the inner optimizer"
-        self._update_learning_rate()
-        self._optimizer.step()
-
-
-    def zero_grad(self):
-        "Zero out the gradients with the inner optimizer"
-        self._optimizer.zero_grad()
-
-
-    def _get_lr_scale(self):
-        d_model = self.d_model
-        n_steps, n_warmup_steps = self.n_steps, self.n_warmup_steps
-        return (d_model ** -0.5) * min(n_steps ** (-0.5), n_steps * n_warmup_steps ** (-1.5))
-
-
-    def _update_learning_rate(self):
-        ''' Learning rate scheduling per step '''
-
-        self.n_steps += 1
-        lr = self.lr_mul * self._get_lr_scale()
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
-
-def plot_bars(gt, pred=None, states=None, save_path=None):
-
-    def plot_sequence_as_horizontal_bar(sequence, title, ax):
-        # if not sequence:
-        #     print(f"Error: Empty sequence for {title}!")
-        #     return
-
-        # Initialize variables
-        unique_elements = [sequence[0]]
-        span_lengths = [1]
-
-        # Calculate the span lengths of each element in the sequence
-        for i in range(1, len(sequence)):
-            if sequence[i] == sequence[i - 1]:
-                span_lengths[-1] += 1
-            else:
-                unique_elements.append(sequence[i])
-                span_lengths.append(1)
-
-        # Create the horizontal bar plot
-        current_position = 0
-        colors = "#9e0142 #d53e4f #f46d43 #fdae61 #fee08b #e6f598 #abdda4 #66c2a5 #3288bd #5e4fa2".split()
-        for i in range(len(unique_elements)):
-            element = unique_elements[i]
-            span_length = span_lengths[i]
-            ax.barh(0, span_length, left=current_position, height=1, color=colors[element])
-            current_position += span_length
-
-        ax.set_yticks([])
-        ax.set_xticks([])
-        # ax.set_xlabel("Sequence")
-        ax.set_ylabel(title)
-        ax.yaxis.label.set(rotation='horizontal', ha='right')
-
-    def plot_difference_bar(true_sequence, pred_sequence, ax):
-        # if not true_sequence or not pred_sequence:
-        #     print("Error: Empty sequences!")
-        #     return
-
-        # Create a horizontal bar plot to indicate differences between sequences
-        current_position = 0
-        for true_elem, pred_elem in zip(true_sequence, pred_sequence):
-            color = 'red' if true_elem != pred_elem else 'white'
-            ax.barh(0, 1, left=current_position, height=1, color=color)
-            current_position += 1
-
-        ax.set_yticks([])
-        ax.set_xticks([])
-        # ax.set_title("Difference")
-    
-    # Replace these with your actual sequences
-    true_sequence = gt
-    pred_sequence = pred
-
-    nrows = 1
-    if pred is not None:
-        nrows += 2 # plot the prediciton and difference bars
-    if states is not None:
-        nrows += 5 # plot the state changes
-    fig, axes = plt.subplots(nrows=nrows, sharex=True, ncols=1, figsize=(8, 1))
-
-    plot_sequence_as_horizontal_bar(true_sequence, "Ground Truth", axes[0])
-    if pred is not None:
-        plot_sequence_as_horizontal_bar(pred_sequence, "Predictions", axes[1])
-        plot_difference_bar(true_sequence, pred_sequence, axes[2])
-    if states is not None:
-        if pred is not None:
-            plot_state_changes(states, axes[3:])
-        else:
-            plot_state_changes(states, axes[1:])
-
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path)
-    # plt.show()
-
-def plot_confusion_matrix(conf_matrix, labels):
-    row_normalized_conf_matrix = conf_matrix / conf_matrix.sum(axis=1, keepdims=True)
-    row_normalized_conf_matrix = np.round(row_normalized_conf_matrix, 2)
-
-    plt.figure(figsize=(10, 8))
-    sns.set(font_scale=1.2)
-    sns.heatmap(row_normalized_conf_matrix, annot=True, cmap='Blues', xticklabels=labels, yticklabels=labels, annot_kws={'size': 12, 'ha': 'center'})
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
-    plt.title('Row-Normalized Confusion Matrix (with 2 decimal places)')
-    plt.show()
-
-def get_classification_report(pred, gt, target_names):
-
-    # get the classification report
-    labels=np.arange(0, len(target_names) ,1)
-    report = classification_report(gt, pred, target_names=target_names, labels=labels, output_dict=True)
-    return pd.DataFrame(report).transpose()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def merge_gesture_sequence(seq):
-    import itertools
     merged_seq = list()
     for g, _ in itertools.groupby(seq): merged_seq.append(g)
     return merged_seq
-
-def compute_edit_score(gt, pred):
-    import editdistance
-    max_len = max(len(gt), len(pred))
-    return 1.0 - editdistance.eval(gt, pred)/max_len
-
-
-def plot_state_changes(sequences, axs):
-
-    num_sequences = len(sequences)
-    # fig, axs = plt.subplots(num_sequences, 1, sharex=True, figsize=(8, 4 * num_sequences))
-
-    markers = ['x', 'x', 'x', 'x', 'x']  # Using 'x' marker for all sequences
-    labels = ['left_holding', 'left_contact', 'right_holding', 'right_contact', 'needle_state']
-    colors = ['red', 'green', 'blue', 'purple', 'orange']  # Different marker colors for each sequence
-
-    for idx, (sequence, color) in enumerate(zip(sequences, colors)):
-        axs[idx].axhline(y=0, color='black')
-
-        prev_value = None
-
-        for i, value in enumerate(sequence):
-            if prev_value is None or prev_value != value:
-                axs[idx].plot(i, 0, marker=markers[idx], color=color)
-
-            prev_value = value
-
-        # axs[idx].set_title(f'Sequence {idx + 1}')
-        axs[idx].set_ylabel(labels[idx])
-        axs[idx].yaxis.label.set(rotation='horizontal', ha='right')
-        axs[idx].set_yticks([])  # Remove y ticks
-
-    axs[num_sequences - 1].set_xlabel('Index')
-    plt.tight_layout()
-    plt.show()
-
-def get_tgt_mask(window_size, device):
-    return Transformer.generate_square_subsequent_mask(window_size, device)
 
 def get_labels(frame_wise_labels):
     labels = []
@@ -236,6 +32,7 @@ def get_labels(frame_wise_labels):
     ends = tmp[1:]
 
     return labels, starts, ends
+
 
 def f_score(predicted, ground_truth, overlap):
     p_label, p_start, p_end = get_labels(predicted)
@@ -260,3 +57,255 @@ def f_score(predicted, ground_truth, overlap):
             fp += 1
     fn = len(y_label) - sum(hits)
     return float(tp), float(fp), float(fn)
+
+def f1_at_X(gt, preds):
+    metrics = dict()
+    overlap = [.1, .25, .5] # F1 @ [10, 25, 50]
+    tp, fp, fn = np.zeros(3), np.zeros(3), np.zeros(3)
+    for s in range(len(overlap)):
+        tp1, fp1, fn1 = f_score(preds, gt, overlap[s])
+        tp[s] += tp1
+        fp[s] += fp1
+        fn[s] += fn1
+    for s in range(len(overlap)):
+        precision = tp[s] / float(tp[s] + fp[s])
+        recall = tp[s] / float(tp[s] + fn[s])
+
+        f1_ = 2.0 * (precision * recall) / (precision + recall)
+        f1_ = np.nan_to_num(f1_) * 100
+        metrics[f'F1@{(int(overlap[s]*100))}'] = f1_
+        
+    return metrics
+
+def reset_parameters(module):
+    if isinstance(module, nn.Linear):
+        module.reset_parameters()
+
+
+def compute_edit_score(gt, pred):
+    max_len = max(len(gt), len(pred))
+    return 1.0 - editdistance.eval(gt, pred)/max_len
+
+
+def initiate_model(input_dim, output_dim, transformer_params, learning_params, tcn_model_params, model_name):
+
+    d_model, nhead, num_layers, hidden_dim, layer_dim, encoder_params, decoder_params = transformer_params.values()
+
+    lr, epochs, weight_decay, patience = learning_params.values()
+
+    if (model_name == 'transformer'):
+        print("Creating Transformer")
+        model = TransformerModel(input_dim=input_dim, output_dim=output_dim, d_model=d_model, nhead=nhead, num_layers=num_layers,
+                                 hidden_dim=hidden_dim, layer_dim=layer_dim, encoder_params=encoder_params, decoder_params=decoder_params)
+
+    elif (model_name == 'tcn'):
+        print("Creating TCN")
+        model = TCN(input_dim=input_dim, output_dim=output_dim,
+                    tcn_model_params=tcn_model_params)
+
+    model = model.cuda()
+
+    # Define the optimizer (Adam optimizer with weight decay)
+    optimizer = optim.Adam(model.parameters(), lr=lr,
+                           weight_decay=weight_decay, betas=(0.9,0.98), eps=1e-9)
+
+
+    # Define the learning rate scheduler (ReduceLROnPlateau scheduler)
+    scheduler = ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.1, patience=patience, verbose=True)
+
+    criterion = nn.CrossEntropyLoss()
+
+    return model, optimizer, scheduler, criterion
+
+# given a tensor of shape [batch,seq_len,features], finds the most common class within the sequence and returns [batch,features]
+def find_mostcommon(tensor, device):
+
+    batch_y_bin = torch.mode(tensor, dim=1).values
+    batch_y_bin = batch_y_bin.to(device)
+
+    return batch_y_bin
+
+# evaluation loop (supports both window wise and frame wise)
+def eval_loop(model, test_dataloader, criterion, dataloader):
+    model.eval()
+    
+    
+    with torch.no_grad():
+        # eval
+        losses = []
+        ypreds, gts = [], []
+        accuracy = 0
+        n_batches = len(test_dataloader)
+        
+        inference_times = []
+        nypreds,ngts = [],[]
+        
+        for src, tgt, future_gesture, future_kinematics in test_dataloader:
+            
+            if(dataloader == "kw"):
+                src = src.to(torch.float32)
+                src = src.to(device)
+                
+                tgt = tgt.to(torch.float32)
+                tgt = tgt.to(device)  
+                
+            y = find_mostcommon(tgt, device) #maxpool
+            # y = tgt
+
+
+            start_time = time.time_ns()
+            y_pred = model(src)  # [64,10]
+            end_time = time.time_ns()
+            inference_time = (end_time-start_time)/1e6
+            inference_time = inference_time/src.shape[0] #divide by batch size to get time for single window
+            inference_times.append(inference_time)
+
+            pred = torch.argmax(y_pred, dim=-1)
+            gt = torch.argmax(y, dim=-1)  # maxpool
+
+
+            pred = pred.cpu().numpy()
+            gt = gt.cpu().numpy()
+
+            # print(gt,pred)
+            ypreds.append(pred)
+            gts.append(gt)
+
+            loss = criterion(y_pred, y) # maxpool
+
+            losses.append(loss.item())
+            
+            accuracy += np.mean(pred == gt)
+
+
+        ypreds = np.concatenate(ypreds)
+        gts = np.concatenate(gts)
+        
+        edit_distance = compute_edit_score(gts, ypreds)
+        f1_score = f1_at_X(gts,ypreds)
+
+
+        accuracy = accuracy/n_batches
+        inference_time = np.mean(inference_times)
+        print("Accuracy:", accuracy, 'Edit Score:',edit_distance, 'F1@X:',f1_score,'Inference Time per window:',inference_time)
+
+
+        return np.mean(losses), accuracy, inference_time,  ypreds, gts, edit_distance, f1_score
+
+# train loop, calls evaluation every epoch
+def traintest_loop(train_dataloader, test_dataloader, model, optimizer, scheduler, criterion, epochs, dataloader, subject, modality):
+
+
+    accuracy = 0
+    total_accuracy = []
+    
+    ypreds, gts = [],[]
+    highest_acc = 0
+    highestypreds, highestygts = [],[]
+    
+    file_path = f'./model_weights/Modality_M{modality}_S0{subject}_best_model_weights.pth'
+    
+    # training loop
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for bi, (src, tgt, future_gesture, future_kinematics) in enumerate(tqdm(train_dataloader)):
+
+            optimizer.zero_grad()
+
+            if(dataloader == "kw"):
+                src = src.to(torch.float32)
+                src = src.to(device)
+                
+                tgt = tgt.to(torch.float32)
+                tgt = tgt.to(device)  
+             
+
+            y = find_mostcommon(tgt, device) #maxpool
+            # y = tgt
+   
+            y_pred =  model(src)  # [64,10]
+            # print('input, prediction, yseq, gt:',src.shape, y_pred.shape,  y.shape, tgt.shape)
+            # input()
+            
+  
+            loss = criterion(y_pred, y)  # for maxpool
+            # loss = criterion(y_pred, tgt)
+            loss.backward()
+
+            running_loss += loss.item()
+            
+            optimizer.step()
+            
+        scheduler.step(running_loss)
+
+        print(
+            f"Training Epoch {epoch+1}, Training Loss: {running_loss / len(train_dataloader):.6f}")
+
+        # evaluation loop
+        val_loss, accuracy, inference_time, ypreds, gts, edit_distance, f1_score = eval_loop(model, test_dataloader, criterion, dataloader)
+        print(f"Valdiation Epoch {epoch+1}, Validation Loss: {val_loss:.6f}")
+
+        if(accuracy > highest_acc): # save only if the accuracy is higher than before
+            highest_acc = accuracy
+            highestygts = gts
+            highestypreds = ypreds
+            # Save the model weights to the file
+            # torch.save(model.state_dict(), file_path)
+
+
+        total_accuracy.append(accuracy)
+    
+    results = {'subject':subject, 'prediction':highestygts, 'groundtruth':highestypreds}
+    df = pd.DataFrame(results)
+
+    df_outpath = './results/model_outputs/'
+        # Create the directory if it doesn't exist
+    if not os.path.exists(df_outpath):
+        os.makedirs(df_outpath)
+        print(f"Directory '{df_outpath}' created.")
+    else:
+        print(f"Directory '{df_outpath}' already exists.")
+
+    df.to_csv(f'{df_outpath}S0{subject}_output.csv')
+    
+    return val_loss, accuracy, total_accuracy, inference_time, edit_distance, f1_score
+
+
+
+def calc_accuracy(pred, gt):
+    
+    pred = torch.cat(pred, dim=0)
+    gt = torch.cat(gt, dim=0)
+
+    correct_predictions = torch.sum(gt == pred)
+    total_predictions = gt.numel()  # Total number of elements in the tensor
+
+    accuracy = correct_predictions.item() / total_predictions
+
+
+    print("Correct predictions:", correct_predictions.item())
+    print("Total predictions:", total_predictions)
+    print("Accuracy:", accuracy)
+    
+    return accuracy
+
+
+def rolling_average(arr, window_size):
+    """
+    Calculate a rolling average for an array of numbers.
+
+    Args:
+        arr (list): The input array of numbers.
+        window_size (int): The size of the rolling window.
+
+    Returns:
+        list: The rolling average as a list.
+    """
+    rolling_avg = []
+    for i in range(len(arr) - window_size + 1):
+        window = arr[i:i + window_size]
+        avg = sum(window) / window_size
+        rolling_avg.append(avg)
+    return rolling_avg
