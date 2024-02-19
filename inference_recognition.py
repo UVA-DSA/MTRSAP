@@ -24,8 +24,8 @@ from config import *
 from models.utils import *
 from models.transtcn import *
 from models.compasstcn import *
-from datautils.dataloader_k import *
-from genutils.utils import *
+from data.dataloader_k import *
+from utils import json_to_csv
 
 import datetime
 import argparse

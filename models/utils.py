@@ -1,91 +1,100 @@
-from .transtcn import *
-from .compasstcn import *
+import time
+import os
+
 import torch
+from torch import Tensor
+import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-import time
-import os
-import editdistance
-import itertools
+
+from torch.nn import Transformer
+
+from .transtcn import *
+from .compasstcn import *
+from metrics import compute_edit_score, f1_at_X
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def merge_gesture_sequence(seq):
-    merged_seq = list()
-    for g, _ in itertools.groupby(seq): merged_seq.append(g)
-    return merged_seq
+class PositionalEncoding(nn.Module):
 
-def get_labels(frame_wise_labels):
-    labels = []
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
 
-    tmp = [0]
-    count = 0
-    for key, group in itertools.groupby(frame_wise_labels):
-        action_len = len(list(group))
-        tmp.append(tmp[count] + action_len)
-        count += 1
-        labels.append(key)
-    starts = tmp[:-1]
-    ends = tmp[1:]
-
-    return labels, starts, ends
-
-
-def f_score(predicted, ground_truth, overlap):
-    p_label, p_start, p_end = get_labels(predicted)
-    y_label, y_start, y_end = get_labels(ground_truth)
-
-    tp = 0
-    fp = 0
-
-    hits = np.zeros(len(y_label))
-
-    for j in range(len(p_label)):
-        intersection = np.minimum(p_end[j], y_end) - np.maximum(p_start[j], y_start)
-        union = np.maximum(p_end[j], y_end) - np.minimum(p_start[j], y_start)
-        IoU = (1.0 * intersection / union) * ([p_label[j] == y_label[x] for x in range(len(y_label))])
-        # Get the best scoring segment
-        idx = np.array(IoU).argmax()
-
-        if IoU[idx] >= overlap and not hits[idx]:
-            tp += 1
-            hits[idx] = 1
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        if d_model%2 != 0:
+            pe[:, 1::2] = torch.cos(position * div_term)[:,0:-1]
         else:
-            fp += 1
-    fn = len(y_label) - sum(hits)
-    return float(tp), float(fp), float(fn)
+            pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
 
-def f1_at_X(gt, preds):
-    metrics = dict()
-    overlap = [.1, .25, .5] # F1 @ [10, 25, 50]
-    tp, fp, fn = np.zeros(3), np.zeros(3), np.zeros(3)
-    for s in range(len(overlap)):
-        tp1, fp1, fn1 = f_score(preds, gt, overlap[s])
-        tp[s] += tp1
-        fp[s] += fp1
-        fn[s] += fn1
-    for s in range(len(overlap)):
-        precision = tp[s] / float(tp[s] + fp[s])
-        recall = tp[s] / float(tp[s] + fn[s])
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
+    
 
-        f1_ = 2.0 * (precision * recall) / (precision + recall)
-        f1_ = np.nan_to_num(f1_) * 100
-        metrics[f'F1@{(int(overlap[s]*100))}'] = f1_
-        
-    return metrics
+class TokenEmbedding(nn.Module):
+    def __init__(self, vocab_size: int, emb_size):
+        super(TokenEmbedding, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, emb_size)
+        self.emb_size = emb_size
+
+    def forward(self, tokens: Tensor):
+        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+    
+
+class ScheduledOptim():
+    ''' A simple wrapper class for learning rate scheduling
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+        sched = ScheduledOptim(optimizer, d_model=..., n_warmup_steps=...)
+    '''
+
+    def __init__(self, optimizer, lr_mul, d_model, n_warmup_steps):
+        self._optimizer = optimizer
+        self.lr_mul = lr_mul
+        self.d_model = d_model
+        self.n_warmup_steps = n_warmup_steps
+        self.n_steps = 0
+
+
+    def step(self):
+        "Step with the inner optimizer"
+        self._update_learning_rate()
+        self._optimizer.step()
+
+
+    def zero_grad(self):
+        "Zero out the gradients with the inner optimizer"
+        self._optimizer.zero_grad()
+
+
+    def _get_lr_scale(self):
+        d_model = self.d_model
+        n_steps, n_warmup_steps = self.n_steps, self.n_warmup_steps
+        return (d_model ** -0.5) * min(n_steps ** (-0.5), n_steps * n_warmup_steps ** (-1.5))
+
+
+    def _update_learning_rate(self):
+        ''' Learning rate scheduling per step '''
+
+        self.n_steps += 1
+        lr = self.lr_mul * self._get_lr_scale()
+        for param_group in self._optimizer.param_groups:
+            param_group['lr'] = lr
+
+def get_tgt_mask(window_size, device):
+    return Transformer.generate_square_subsequent_mask(window_size, device)
 
 def reset_parameters(module):
     if isinstance(module, nn.Linear):
         module.reset_parameters()
-
-
-def compute_edit_score(gt, pred):
-    max_len = max(len(gt), len(pred))
-    return 1.0 - editdistance.eval(gt, pred)/max_len
-
 
 def initiate_model(input_dim, output_dim, transformer_params, learning_params, tcn_model_params, model_name):
 
@@ -274,38 +283,3 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
 
 
 
-def calc_accuracy(pred, gt):
-    
-    pred = torch.cat(pred, dim=0)
-    gt = torch.cat(gt, dim=0)
-
-    correct_predictions = torch.sum(gt == pred)
-    total_predictions = gt.numel()  # Total number of elements in the tensor
-
-    accuracy = correct_predictions.item() / total_predictions
-
-
-    print("Correct predictions:", correct_predictions.item())
-    print("Total predictions:", total_predictions)
-    print("Accuracy:", accuracy)
-    
-    return accuracy
-
-
-def rolling_average(arr, window_size):
-    """
-    Calculate a rolling average for an array of numbers.
-
-    Args:
-        arr (list): The input array of numbers.
-        window_size (int): The size of the rolling window.
-
-    Returns:
-        list: The rolling average as a list.
-    """
-    rolling_avg = []
-    for i in range(len(arr) - window_size + 1):
-        window = arr[i:i + window_size]
-        avg = sum(window) / window_size
-        rolling_avg.append(avg)
-    return rolling_avg

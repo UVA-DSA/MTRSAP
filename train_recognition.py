@@ -1,30 +1,13 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
 import numpy as np
-import pandas as pd
-import os
-import glob
-from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from pathlib import Path
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 import json
-from typing import List
-import os
-from functools import partial
-import torch.nn.functional as F
-from timeit import default_timer as timer
-from datautils.utils import get_dataloaders
-from tqdm import tqdm
-from collections import OrderedDict
+from data import get_dataloaders, generate_data
 from config import *
-from models.utils import *
+from models.utils import initiate_model, reset_parameters, traintest_loop, rolling_average
 from models.transtcn import *
 from models.compasstcn import *
-from datautils.dataloader_k import *
-from genutils.utils import *
+from utils import json_to_csv
 
 import datetime
 import argparse

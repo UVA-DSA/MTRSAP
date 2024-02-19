@@ -1,66 +1,20 @@
-from typing import List
-import os
 from pathlib import Path
-import json
-from functools import partial
 import torch
-import torch.nn.functional as F
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
 from tqdm import tqdm
-from timeit import default_timer as timer
-from utils import get_dataloaders
-from datagen import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_no_rot_ps, class_names, all_class_names, state_variables
-from models.utils import plot_bars, get_tgt_mask, compute_edit_score, merge_gesture_sequence, f_score, get_classification_report, ScheduledOptim
 
-import warnings
+# import warnings
 # warnings.filterwarnings('ignore')
 
+from utils import get_dataloaders
+from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_no_rot_ps, class_names, all_class_names, state_variables
+from metrics import compute_metrics
+from visualization import plot_loss, plot_bars, plot_stacked_time_series
 
-# ------------------------------------- Functions ----------------------------------
-def compute_metrics(preds, gt, regression_preds, regressoin_gt, is_train=False):
 
-    metrics = dict()
 
-    # frame wise accuracy
-    metrics['accuracy'] = np.mean(np.array(preds) == np.array(gt))
-
-    # edit score
-    if not is_train:
-        metrics['edit_score'] = compute_edit_score(merge_gesture_sequence(gt), merge_gesture_sequence(preds))
-
-    rmse = {'RMSE_'+k: v for k, v in zip(trajectory_feature_names, np.sqrt(mean_squared_error(regressoin_gt, regression_preds, multioutput='raw_values')).reshape(-1).tolist())}
-    mae = {'MAE_'+k: v for k, v in zip(trajectory_feature_names, mean_absolute_error(regressoin_gt, regression_preds, multioutput='raw_values').reshape(-1).tolist())}
-    mape = {'MAPE_'+k: v for k, v in zip(trajectory_feature_names, mean_absolute_percentage_error(regressoin_gt, regression_preds, multioutput='raw_values').reshape(-1).tolist())}
-    metrics = metrics | rmse | mape | mae
-
-    # F1 @ X
-    # if not is_train:
-    #     overlap = [.1, .25, .5] # F1 @ [10, 25, 50]
-    #     tp, fp, fn = np.zeros(3), np.zeros(3), np.zeros(3)
-    #     for s in range(len(overlap)):
-    #         tp1, fp1, fn1 = f_score(preds, gt, overlap[s])
-    #         tp[s] += tp1
-    #         fp[s] += fp1
-    #         fn[s] += fn1
-    #     for s in range(len(overlap)):
-    #         precision = tp[s] / float(tp[s] + fp[s])
-    #         recall = tp[s] / float(tp[s] + fn[s])
-
-    #         f1_ = 2.0 * (precision * recall) / (precision + recall)
-    #         f1_ = np.nan_to_num(f1_) * 100
-    #         metrics[f'F1@{int(overlap[s]*10)}'] = f1_
-
-    # confusion matrix
-
-    # classification report
-    report = get_classification_report(preds, gt, valid_dataloader.dataset.get_target_names())
-    # metrics['report'] = report
-
-    return metrics
-
+# ------------------------------------ Functions ----------------------------------
 def train_model(model, optimizer, criterion, train_dataloader):
 
     epoch_train_losses = []
@@ -197,55 +151,6 @@ def eval_model(model, criterion, valid_dataloader):
     valid_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, is_train=False)
     return np.mean(epoch_valid_losses), np.mean(epoch_classification_losses), np.mean(epoch_regression_losses), valid_metrics
 
-def plot_loss(train_losses, valid_losses, loss_type: str):
-    plt.figure(figsize=(10, 8))
-    epochs = list(range(1, len(train_losses) + 1))
-    plt.plot(epochs, train_losses, label='Training Loss', marker='o', linestyle='-', color='blue')
-    plt.plot(epochs, valid_losses, label='Test Loss', marker='o', linestyle='-', color='red')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-    plt.title(loss_type)
-    plt.legend()
-    plt.savefig(Path(f'./results/{experiment_name}/plots/{loss_type}_fig_{subject_id_to_exclude}.png'))
-
-def plot_stacked_time_series(actual_series, predicted_series, series_names, save_path):
-    num_series = len(actual_series)
-    
-    print(actual_series.shape, predicted_series.shape, series_names)
-    # Create a figure and axes
-    fig, axes = plt.subplots(nrows=num_series, ncols=1, figsize=(10, 6*num_series))
-    
-    # Ensure axes is a list for consistent indexing
-    # if not isinstance(axes, list):
-    #     print('helooooooooooooooooooooooo')
-    #     axes = [axes]
-    
-    for i in range(num_series):
-        ax = axes[i]
-        actual_data = actual_series[i]
-        predicted_data = predicted_series[i]
-        name = series_names[i]
-
-        # Plot actual data in blue
-        ax.plot(np.arange(len(actual_data)), actual_data, label=f'Actual {name}', color='blue')
-
-        # Plot predicted data in red
-        # ax.plot(np.arange(len(predicted_data)), predicted_data, label=f'Predicted {name}', color='red')
-
-        # Set labels and title
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Value')
-        ax.set_title(f'{name} Time Series')
-        
-        # Add legend
-        ax.legend()
-
-    # Adjust layout to prevent overlap
-    plt.tight_layout()
-
-    # Show the plot (optional)
-    plt.savefig(save_path)
 
 def save_artifacts(model, train_records, valid_records, valid_dataloader):
     Path(f'./results/{experiment_name}').mkdir(parents=True, exist_ok=True)
@@ -259,9 +164,9 @@ def save_artifacts(model, train_records, valid_records, valid_dataloader):
     valid_metrics = valid_metrics[-1] 
 
     # plot the losses
-    plot_loss(train_losses, valid_losses, "Total Loss")
-    plot_loss(train_classification_losses, valid_classification_losses, "Gesture Prediction Loss")
-    plot_loss(train_regression_losses, valid_regression_losses, "Trajectory Prediciton Loss")
+    plot_loss(train_losses, valid_losses, "Total Loss", experiment_name, subject_id_to_exclude)
+    plot_loss(train_classification_losses, valid_classification_losses, "Gesture Prediction Loss", experiment_name, subject_id_to_exclude)
+    plot_loss(train_regression_losses, valid_regression_losses, "Trajectory Prediciton Loss", experiment_name, subject_id_to_exclude)
     
     # save the accuracy for the current model and subject
     print(train_metrics)

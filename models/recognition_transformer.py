@@ -12,13 +12,6 @@ import math
 from .utils import *
 
 
-
-
-
-
-
-
-
 class RecognitionModel(nn.Module):
     def __init__(self,
                  encoder_input_dim: int, # dimension of the input to the encoder
