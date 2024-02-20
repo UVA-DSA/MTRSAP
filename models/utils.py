@@ -1,5 +1,6 @@
 import time
 import os
+import math
 
 import torch
 from torch import Tensor
@@ -12,8 +13,8 @@ import pandas as pd
 
 from torch.nn import Transformer
 
-from .transtcn import *
-from .compasstcn import *
+from models.recognition.transtcn import TransformerModel
+from models.recognition.compasstcn import TCN
 from metrics import compute_edit_score, f1_at_X
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -95,37 +96,6 @@ def get_tgt_mask(window_size, device):
 def reset_parameters(module):
     if isinstance(module, nn.Linear):
         module.reset_parameters()
-
-def initiate_model(input_dim, output_dim, transformer_params, learning_params, tcn_model_params, model_name):
-
-    d_model, nhead, num_layers, hidden_dim, layer_dim, encoder_params, decoder_params = transformer_params.values()
-
-    lr, epochs, weight_decay, patience = learning_params.values()
-
-    if (model_name == 'transformer'):
-        print("Creating Transformer")
-        model = TransformerModel(input_dim=input_dim, output_dim=output_dim, d_model=d_model, nhead=nhead, num_layers=num_layers,
-                                 hidden_dim=hidden_dim, layer_dim=layer_dim, encoder_params=encoder_params, decoder_params=decoder_params)
-
-    elif (model_name == 'tcn'):
-        print("Creating TCN")
-        model = TCN(input_dim=input_dim, output_dim=output_dim,
-                    tcn_model_params=tcn_model_params)
-
-    model = model.cuda()
-
-    # Define the optimizer (Adam optimizer with weight decay)
-    optimizer = optim.Adam(model.parameters(), lr=lr,
-                           weight_decay=weight_decay, betas=(0.9,0.98), eps=1e-9)
-
-
-    # Define the learning rate scheduler (ReduceLROnPlateau scheduler)
-    scheduler = ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.1, patience=patience, verbose=True)
-
-    criterion = nn.CrossEntropyLoss()
-
-    return model, optimizer, scheduler, criterion
 
 # given a tensor of shape [batch,seq_len,features], finds the most common class within the sequence and returns [batch,features]
 def find_mostcommon(tensor, device):
@@ -281,5 +251,21 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
     
     return val_loss, accuracy, total_accuracy, inference_time, edit_distance, f1_score
 
+def rolling_average(arr, window_size):
+    """
+    Calculate a rolling average for an array of numbers.
 
+    Args:
+        arr (list): The input array of numbers.
+        window_size (int): The size of the rolling window.
+
+    Returns:
+        list: The rolling average as a list.
+    """
+    rolling_avg = []
+    for i in range(len(arr) - window_size + 1):
+        window = arr[i:i + window_size]
+        avg = sum(window) / window_size
+        rolling_avg.append(avg)
+    return rolling_avg
 

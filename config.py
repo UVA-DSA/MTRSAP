@@ -1,5 +1,5 @@
 import torch
-from datautils.datagen import img_features,kinematic_feature_names,colin_features, segmentation_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
+from data import resnet_features,kinematic_feature_names,colin_features, segmentation_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 
 
 RECORD_RESULTS = True
@@ -87,15 +87,15 @@ modality_mapping = {
     1: kinematic_feature_names_jigsaws_patient_position,  # Kinematic (14)
     2: state_variables,  # Context (GT)
     3: colin_features,  # Colins Features
-    4: img_features,  # ResNet50 Features
+    4: resnet_features,  # ResNet50 Features
     5: segmentation_features,  # Segmentation Masks Features
     6: state_variables + colin_features,  # Context(GT) + Colins Features
     7: kinematic_feature_names_jigsaws[38:] + state_variables,  # Kinematic (38) + Context(GT)
     8: kinematic_feature_names_jigsaws_patient_position + state_variables,  # Kinematic (14) + Context(GT)
     9: kinematic_feature_names_jigsaws[38:] + colin_features,  # Kinematic (38) + Colins Features
     10: kinematic_feature_names_jigsaws_patient_position + colin_features,  # Kinematic (14) + Colins Features
-    11: kinematic_feature_names_jigsaws[38:] + img_features,  # Kinematic (38) + ResNet50
-    12: kinematic_feature_names_jigsaws_patient_position + img_features,  # Kinematic (14) + ResNet50
+    11: kinematic_feature_names_jigsaws[38:] + resnet_features,  # Kinematic (38) + ResNet50
+    12: kinematic_feature_names_jigsaws_patient_position + resnet_features,  # Kinematic (14) + ResNet50
     13: kinematic_feature_names_jigsaws[38:] + segmentation_features,  # Kinematic (38) + Segmentation Masks
     14: kinematic_feature_names_jigsaws_patient_position + segmentation_features,  # Kinematic (14) + Segmentation Masks
     15: kinematic_feature_names_jigsaws[38:] + state_variables + colin_features,  # Kinematic (38) + Context(GT) + Colins Features
@@ -104,7 +104,7 @@ modality_mapping = {
     18: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT)
     19: kinematic_feature_names_jigsaws[38:] + segmentation_features + state_variables,  # Kinematic (38) + Segmentation Masks + Context(GT) + Colins
     20: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
-    21: kinematic_feature_names_jigsaws_patient_position  + img_features,  # Kinematic (14)  + Resnet
+    21: kinematic_feature_names_jigsaws_patient_position  + resnet_features,  # Kinematic (14)  + Resnet
 }
 
 

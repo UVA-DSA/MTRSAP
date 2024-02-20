@@ -7,9 +7,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, 
 from sklearn.metrics import classification_report, confusion_matrix
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 
 from data import trajectory_feature_names
 
@@ -104,25 +101,6 @@ def get_classification_report(pred, gt, target_names):
     labels=np.arange(0, len(target_names) ,1)
     report = classification_report(gt, pred, target_names=target_names, labels=labels, output_dict=True)
     return pd.DataFrame(report).transpose()
-
-
-def rolling_average(arr, window_size):
-    """
-    Calculate a rolling average for an array of numbers.
-
-    Args:
-        arr (list): The input array of numbers.
-        window_size (int): The size of the rolling window.
-
-    Returns:
-        list: The rolling average as a list.
-    """
-    rolling_avg = []
-    for i in range(len(arr) - window_size + 1):
-        window = arr[i:i + window_size]
-        avg = sum(window) / window_size
-        rolling_avg.append(avg)
-    return rolling_avg
 
 def compute_metrics(preds, gt, regression_preds, regressoin_gt, is_train=False):
 

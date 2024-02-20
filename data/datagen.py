@@ -44,7 +44,7 @@ kinematic_feature_names_jigsaws = ["MTML_position_x", "MTML_position_y", "MTML_p
                                         "PSMR_velocity_rot0", "PSMR_velocity_rot1", "PSMR_velocity_rot2",
                                         "PSMR_gripper_angle"]
 
-kinematic_feature_names_jigsaws_no_rot_ps = ["PSML_position_x", "PSML_position_y", "PSML_position_z",
+kinematic_feature_names_jigsaws_patient_position  = ["PSML_position_x", "PSML_position_y", "PSML_position_z",
                                         "PSML_velocity_x", "PSML_velocity_y", "PSML_velocity_z",
                                         "PSML_gripper_angle", 
                                         "PSMR_position_x", "PSMR_position_y", "PSMR_position_z",
@@ -57,8 +57,10 @@ state_variables = ['left_holding', 'left_contact', 'right_holding', 'right_conta
 state_variables_repeating_factor = 10
 
 resnet_features_save_path = './resnet_features'
+resnet_features = [f'resnet_{i}' for i in range(2048)]
 
 ## COLIN FEATURES ##
+colin_features = [f'colin_{i}' for i in range(128)]
 colin_features_save_path = './SpatialCNN/'
 colin_train_test_splits = {
     'Suturing': {
@@ -74,6 +76,7 @@ colin_train_test_splits = {
 }
 
 ## SEGMENTATION FEATURES
+segmentation_features = [f'seg_{i}' for i in range(128)]
 segmentation_features_save_path = "./segmentation_masks/pca_features_normalized"
 image_features_save_path = "./resnet_features/"
 

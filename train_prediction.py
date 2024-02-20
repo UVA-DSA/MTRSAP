@@ -8,9 +8,10 @@ from tqdm import tqdm
 # warnings.filterwarnings('ignore')
 
 from utils import get_dataloaders
-from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_no_rot_ps, class_names, all_class_names, state_variables
+from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 from metrics import compute_metrics
 from visualization import plot_loss, plot_bars, plot_stacked_time_series
+from models import TransformerEncoderDecoderModel
 
 
 
@@ -151,7 +152,6 @@ def eval_model(model, criterion, valid_dataloader):
     valid_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, is_train=False)
     return np.mean(epoch_valid_losses), np.mean(epoch_classification_losses), np.mean(epoch_regression_losses), valid_metrics
 
-
 def save_artifacts(model, train_records, valid_records, valid_dataloader):
     Path(f'./results/{experiment_name}').mkdir(parents=True, exist_ok=True)
     Path(f'./results/{experiment_name}', 'plots').mkdir(exist_ok=True) 
@@ -276,7 +276,6 @@ for subject_id_to_exclude in [7]:
 
     # Build the Model
     model_name = 'transformer'
-    from models.transformer import TransformerEncoderDecoderModel
     args = dict(
         num_encoder_layers = 1,
         num_decoder_layers = 1,

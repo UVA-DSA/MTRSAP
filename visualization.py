@@ -1,6 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def plot_loss(train_losses, valid_losses, loss_type: str, experiment_name, subject_id_to_exclude):
     plt.figure(figsize=(10, 8))

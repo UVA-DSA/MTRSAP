@@ -1,9 +1,9 @@
+import math
 
 import torch
 import torch.nn as nn
 
-from .unet import *
-import math
+
 
 class PositionalEncoding(nn.Module):
 

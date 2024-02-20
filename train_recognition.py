@@ -1,12 +1,10 @@
 import torch
 import numpy as np
-from sklearn.model_selection import train_test_split
 import json
 from data import get_dataloaders, generate_data
 from config import *
-from models.utils import initiate_model, reset_parameters, traintest_loop, rolling_average
-from models.transtcn import *
-from models.compasstcn import *
+from models.utils import reset_parameters, traintest_loop, rolling_average
+from models import initiate_model
 from utils import json_to_csv
 
 import datetime

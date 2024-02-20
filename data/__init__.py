@@ -6,8 +6,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, PowerTransformer
 
 
 from .dataset import LOUO_Dataset
+from .datagen import colin_features, resnet_features, segmentation_features
 from .datagen import colin_train_test_splits, colin_features_save_path, segmentation_features_save_path
-from .datagen import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_no_rot_ps, class_names, all_class_names, state_variables
+from .datagen import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 from .dataloader_k import generate_data
 
 def get_normalizer(normalization_type):
