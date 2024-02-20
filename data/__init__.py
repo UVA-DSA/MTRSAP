@@ -46,8 +46,8 @@ def get_dataloaders(tasks: List[str],
     import torch
 
     from torch.utils.data import DataLoader
-    from dataset import LOUO_Dataset
-    from datagen import all_tasks
+    from .dataset import LOUO_Dataset
+    from .datagen import all_tasks
     
 
     def _get_files_except_user(task, data_path, subject_id_to_exclude: int) -> List[str]:

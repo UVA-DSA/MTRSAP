@@ -15,7 +15,7 @@ python_script="./train_recognition.py"
 # Loop to run the Python script n times
 for ((i=0; i<$n; i++)); do
     echo "Running iteration $i"
-    python "$python_script"  --model transformer --dataloader hamid --context $i
+    python "$python_script"  --model transformer --dataloader v1 --modality $i
 done
 
 echo "Script completed $n iterations."

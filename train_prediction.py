@@ -7,7 +7,7 @@ from tqdm import tqdm
 # import warnings
 # warnings.filterwarnings('ignore')
 
-from utils import get_dataloaders
+from data import get_dataloaders
 from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 from metrics import compute_metrics
 from visualization import plot_loss, plot_bars, plot_stacked_time_series
@@ -80,7 +80,7 @@ def train_model(model, optimizer, criterion, train_dataloader):
     traj_preds = np.concatenate(traj_preds)
     traj_gt = np.concatenate(traj_gt)
 
-    train_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, is_train=True)
+    train_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, valid_dataloader.dataset.get_target_names(), is_train=True)
     return np.mean(epoch_train_losses), np.mean(epoch_classification_losses), np.mean(epoch_regression_losses), train_metrics
 
 def eval_model(model, criterion, valid_dataloader):
@@ -149,7 +149,7 @@ def eval_model(model, criterion, valid_dataloader):
     print(traj_preds[:2])
     print(traj_gt[:2])
 
-    valid_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, is_train=False)
+    valid_metrics = compute_metrics(preds, gt, traj_preds, traj_gt, valid_dataloader.dataset.get_target_names(), is_train=False)
     return np.mean(epoch_valid_losses), np.mean(epoch_classification_losses), np.mean(epoch_regression_losses), valid_metrics
 
 def save_artifacts(model, train_records, valid_records, valid_dataloader):
@@ -239,7 +239,7 @@ include_segmentation_features = False
 normalizer = '' # ('standardization', 'min-max', 'power', '')
 step = 1 # 10 Hz
 
-for subject_id_to_exclude in [7]:
+for subject_id_to_exclude in [2,3,4,5,6,7,8,9]:
     train_dataloader, valid_dataloader = get_dataloaders(tasks=tasks,
                                                         subject_id_to_exclude=subject_id_to_exclude,
                                                         observation_window=observation_window,
@@ -319,7 +319,7 @@ for subject_id_to_exclude in [7]:
     #----------------------------------------Training Loop-------------------------------------------------
     experiment_name = 'transformer_kin_context'
     results = {}
-    epochs = 20
+    epochs = 10
     train_records, valid_records = [], []
     for epoch in range(epochs):
         epoch_train_loss, epoch_train_classification_loss, epoch_train_regression_loss, train_metrics = train_model(model, optimizer, criterion, train_dataloader)

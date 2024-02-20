@@ -37,7 +37,7 @@ def plot_stacked_time_series(actual_series, predicted_series, series_names, save
         ax.plot(np.arange(len(actual_data)), actual_data, label=f'Actual {name}', color='blue')
 
         # Plot predicted data in red
-        # ax.plot(np.arange(len(predicted_data)), predicted_data, label=f'Predicted {name}', color='red')
+        ax.plot(np.arange(len(predicted_data)), predicted_data, label=f'Predicted {name}', color='red')
 
         # Set labels and title
         ax.set_xlabel('Time')

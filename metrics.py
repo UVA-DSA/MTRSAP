@@ -102,7 +102,7 @@ def get_classification_report(pred, gt, target_names):
     report = classification_report(gt, pred, target_names=target_names, labels=labels, output_dict=True)
     return pd.DataFrame(report).transpose()
 
-def compute_metrics(preds, gt, regression_preds, regressoin_gt, is_train=False):
+def compute_metrics(preds, gt, regression_preds, regressoin_gt, target_names, is_train=False):
 
     metrics = dict()
 
@@ -138,6 +138,8 @@ def compute_metrics(preds, gt, regression_preds, regressoin_gt, is_train=False):
     # confusion matrix
 
     # classification report
-    report = get_classification_report(preds, gt, valid_dataloader.dataset.get_target_names())
+    report = get_classification_report(preds, gt, target_names)
     # metrics['report'] = report
+
+    return metrics
 

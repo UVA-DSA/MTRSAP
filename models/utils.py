@@ -122,12 +122,11 @@ def eval_loop(model, test_dataloader, criterion, dataloader):
         
         for src, tgt, future_gesture, future_kinematics in test_dataloader:
             
-            if(dataloader == "kw"):
-                src = src.to(torch.float32)
-                src = src.to(device)
-                
-                tgt = tgt.to(torch.float32)
-                tgt = tgt.to(device)  
+            src = src.to(torch.float32)
+            src = src.to(device)
+            
+            tgt = tgt.to(torch.float32)
+            tgt = tgt.to(device)  
                 
             y = find_mostcommon(tgt, device) #maxpool
             # y = tgt
@@ -193,12 +192,11 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
 
             optimizer.zero_grad()
 
-            if(dataloader == "kw"):
-                src = src.to(torch.float32)
-                src = src.to(device)
-                
-                tgt = tgt.to(torch.float32)
-                tgt = tgt.to(device)  
+            src = src.to(torch.float32)
+            src = src.to(device)
+            
+            tgt = tgt.to(torch.float32)
+            tgt = tgt.to(device)  
              
 
             y = find_mostcommon(tgt, device) #maxpool

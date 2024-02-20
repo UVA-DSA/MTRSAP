@@ -60,6 +60,21 @@ observation_window = dataloader_params["observation_window"],
 if(dataloader == "v1"):
     train_dataloader, valid_dataloader = generate_data(dataloader_params["user_left_out"],task,Features, dataloader_params["batch_size"], observation_window)
 elif dataloader == "v2":
+    # train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
+    #                                                     subject_id_to_exclude=dataloader_params["user_left_out"],
+    #                                                     observation_window=dataloader_params["observation_window"],
+    #                                                     prediction_window=dataloader_params["prediction_window"],
+    #                                                     batch_size=dataloader_params["batch_size"],
+    #                                                     one_hot=one_hot,
+    #                                                     class_names=class_names['Suturing'],
+    #                                                     feature_names=Features,
+    #                                                     trajectory_feature_names=trajectory_feature_names,
+    #                                                     include_resnet_features=include_resnet_features,
+    #                                                     include_segmentation_features=include_segmentation_features,
+    #                                                     include_colin_features=include_colin_features,
+    #                                                     cast=cast,
+    #                                                     normalizer=normalizer,
+    #                                                     step=step)
     train_dataloader, valid_dataloader = get_dataloaders([task],
                                                      dataloader_params["user_left_out"],
                                                      dataloader_params["observation_window"],
@@ -68,7 +83,7 @@ elif dataloader == "v2":
                                                      dataloader_params["one_hot"],
                                                      class_names = class_names['Suturing'],
                                                      feature_names = Features,
-                                                     include_image_features=dataloader_params["include_image_features"],
+                                                     include_resnet_features=dataloader_params["include_image_features"],
                                                      cast = dataloader_params["cast"],
                                                      normalizer = dataloader_params["normalizer"],
                                                      step=dataloader_params["step"])
@@ -128,9 +143,10 @@ for i in range(REPEAT):
             model,optimizer,scheduler,criterion = initiate_model(input_dim=input_dim,output_dim=output_dim,transformer_params=transformer_params,learning_params=learning_params, tcn_model_params=tcn_model_params, model_name=model_name)
             
             model.apply(reset_parameters)
+            model = model.cuda()
             user_left_out = subject
 
-            if(dataloader == "kw"):
+            if(dataloader == "v1"):
                 train_dataloader, valid_dataloader = generate_data(user_left_out,task,Features, dataloader_params["batch_size"], observation_window)
             else:
                 train_dataloader, valid_dataloader = get_dataloaders([task],

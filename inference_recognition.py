@@ -21,10 +21,11 @@ from data import kinematic_feature_names,colin_features, kinematic_feature_names
 from tqdm import tqdm
 from collections import OrderedDict
 from config import *
-from models.utils import *
-from models.recognition.transtcn import *
-from models.recognition.compasstcn import *
-from data.dataloader_k import *
+from models import initiate_model
+# from models.utils import *
+# from models.recognition.transtcn import *
+# from models.recognition.compasstcn import *
+# from data.dataloader_k import *
 from utils import json_to_csv
 
 import datetime
@@ -79,13 +80,13 @@ elif(context == 2): # context + kin
     # Features = kinematic_feature_names_jigsaws_patient_position + state_variables #kinematic features + state variable features
 
 elif(context == 3): # img features only
-    Features = img_features 
+    Features = resnet_features 
     
 elif(context == 4): # img features + kin
-    Features = img_features + kinematic_feature_names_jigsaws_patient_position
+    Features = resnet_features + kinematic_feature_names_jigsaws_patient_position
     
 elif(context == 5): # img features + kin + context
-    Features = img_features + kinematic_feature_names_jigsaws_patient_position + state_variables
+    Features = resnet_features + kinematic_feature_names_jigsaws_patient_position + state_variables
 
 
 elif(context == 6): # colin_features
