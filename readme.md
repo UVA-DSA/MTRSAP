@@ -50,7 +50,7 @@ To reproduce gesture recognition results use the following command with the orig
 
 The model parameters and dataloader scripts needs to be changed to suit custom datasets. The current dataloader and config is designed for the above dataset. 
 
-``` python train_recognition.py --model transformer --dataloader v2 --modality 16 ```
+``` python train_recognition.py --model transformer --dataloader v1 --modality 16 ```
 
 Results will be in the **results** folder specifically in following files.
 1. ```train_results.json``` : Detailed results for each subject in LOUO setup.
@@ -64,7 +64,7 @@ Please feel free to improve the model, add features and use this for research pu
 If you have any questions, please feel free to reach out using the following email addresses (cjh9fw@virginia.edu, ydq9ag@virginia.edu)
 ## License
 
-Specify the license under which your project is distributed. For example, [MIT License](https://opensource.org/licenses/MIT).
+The code for this project is made available to the public via the  [MIT License](https://opensource.org/licenses/MIT) license.
 
 ## Acknowledgements
 
