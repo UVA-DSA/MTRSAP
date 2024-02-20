@@ -64,7 +64,7 @@ Please feel free to improve the model, add features and use this for research pu
 If you have any questions, please feel free to reach out using the following email addresses (cjh9fw@virginia.edu, ydq9ag@virginia.edu)
 ## License
 
-The code for this project is made available to the public via the  [MIT License](https://opensource.org/licenses/MIT) license.
+The code for this project is made available to the public via the  [MIT License](https://opensource.org/licenses/MIT).
 
 ## Acknowledgements
 
