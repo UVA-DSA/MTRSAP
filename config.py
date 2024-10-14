@@ -39,20 +39,20 @@ tcn_model_params = {
 
 
 transformer_params = {
-    "d_model": 64,
-    "nhead": 1,
-    "num_layers": 1,
+    "d_model": 60,
+    "nhead": 3,
+    "num_layers": 2,
     "hidden_dim": 128,
     "layer_dim": 4,
     "encoder_params": { #some of these gets updated during runtime based on the feature dimension of the given data
         "in_channels": 14,
         "kernel_size": 31,
-        "out_channels": 64,
+        "out_channels": 60,
     },
     "decoder_params": {
-        "in_channels": 64,
+        "in_channels": 60,
         "kernel_size": 31,
-        "out_channels": 64
+        "out_channels": 60
     },
 }
 

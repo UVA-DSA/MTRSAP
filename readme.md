@@ -1,6 +1,6 @@
 # MTRSAP - Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction
 
-This repository provides the code for the ICRA 2024 paper "Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction".
+This repository provides the code for the ICRA 2024 paper ["Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction"](https://arxiv.org/pdf/2403.06705).
 
 ## Table of Contents
 
@@ -27,7 +27,21 @@ Please follow the below instructions to setup the code in your environment.
 
 1. **Anaconda**: Make sure to have Anaconda installed on your system. You can download it from Anaconda's official website.
 
-2. **Preprocessed Dataset**: Obtain the preprocessed dataset required for your project. Refer to the Usage section for detailed instructions on acquiring and incorporating the dataset.
+2. **Preprocessed Dataset**: Obtain the preprocessed dataset using the `datagen.py` in the following format:
+  
+   ```bash
+   ProcessedDatasets/
+   └── Task/
+       └── Task_S0X_T0Y.csv
+   ```
+   Each CSV file should have columns such as for the modalities:
+
+   ```
+   MTML_position_x, MTML_position_y, MTML_position_z, MTML_rotation_0, ..., resnet_0, ..., seg_0, ..., label
+   ```
+
+   DemoData folder should include a sample csv for your reference.
+   See the [dataset format](#dataset-format) for more details.
 
 3. **Operating System**: While the project is designed to be compatible with various operating systems, Ubuntu is the preferred environment.
 
@@ -50,11 +64,21 @@ To reproduce gesture recognition results use the following command with the orig
 
 The model parameters and dataloader scripts needs to be changed to suit custom datasets. The current dataloader and config is designed for the above dataset. 
 
-``` python train_recognition.py --model transformer --dataloader v1 --modality 16 ```
+To run the model for gesture recognition with the default settings, use the following command:
+
+```bash
+python train_recognition.py --model transformer --dataloader v2 --modality 16
+```
+
+To run the complete suite of experiments for gesture recognition using different modalities.
+```bash
+bash run_experiment.sh
+```
 
 Results will be in the **results** folder specifically in following files.
 1. ```train_results.json``` : Detailed results for each subject in LOUO setup.
 2. ```Train_{task}_{model}_{date-time}.csv ``` : Final results of the run.
+
 
 
 ## Contributing
