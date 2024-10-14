@@ -1,8 +1,10 @@
-def json_to_csv(csv_file, json_file):
-    import json
-    import csv
+import json
+import csv
 
-    data = []
+data = []
+
+
+def json_to_csv(csv_file, json_file):
     
     # Read JSON data from file
     with open(f'results/{json_file}.json', 'r') as json_file:
@@ -20,3 +22,5 @@ def json_to_csv(csv_file, json_file):
         csv_writer.writerows(data)
 
     print(f'Data written to {csv_path}')
+    
+

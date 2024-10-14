@@ -16,17 +16,16 @@ import os
 from functools import partial
 import torch.nn.functional as F
 from timeit import default_timer as timer
-from data import get_dataloaders
-from data import kinematic_feature_names,colin_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
+from datautils.utils import get_dataloaders
+from datautils.datagen import kinematic_feature_names,colin_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 from tqdm import tqdm
 from collections import OrderedDict
 from config import *
-from models import initiate_model
-# from models.utils import *
-# from models.recognition.transtcn import *
-# from models.recognition.compasstcn import *
-# from data.dataloader_k import *
-from utils import json_to_csv
+from models.utils import *
+from models.transtcn import *
+from models.compasstcn import *
+from datautils.dataloader_k import *
+from genutils.utils import *
 
 import datetime
 import argparse
@@ -80,13 +79,13 @@ elif(context == 2): # context + kin
     # Features = kinematic_feature_names_jigsaws_patient_position + state_variables #kinematic features + state variable features
 
 elif(context == 3): # img features only
-    Features = resnet_features 
+    Features = img_features 
     
 elif(context == 4): # img features + kin
-    Features = resnet_features + kinematic_feature_names_jigsaws_patient_position
+    Features = img_features + kinematic_feature_names_jigsaws_patient_position
     
 elif(context == 5): # img features + kin + context
-    Features = resnet_features + kinematic_feature_names_jigsaws_patient_position + state_variables
+    Features = img_features + kinematic_feature_names_jigsaws_patient_position + state_variables
 
 
 elif(context == 6): # colin_features

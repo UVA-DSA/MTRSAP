@@ -1,34 +1,32 @@
-# MTRSAP - Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction
+# MTRSAP: Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction
 
-This repository provides the code for the ICRA 2024 paper ["Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction"](https://arxiv.org/pdf/2403.06705).
+This repository contains the official code for the paper _"Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction"_ submitted to ICRA 2024.
 
 ## Table of Contents
 
-- [Project Title](#project-title)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-  - [Usage](#usage)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Acknowledgements](#acknowledgements)
+- [Introduction](#introduction)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
 ## Introduction
 
-This repo is the official code for the ICRA 2024 paper "Multimodal Transformer for Real-time Surgical Activity Recognition and Prediction"
+This project implements a **Multimodal Transformer** designed for **real-time surgical activity recognition and prediction**. It integrates various data modalities such as robotic kinematics and video data, offering an efficient approach to gesture recognition and activity prediction in surgical settings.
 
 ## Getting Started
 
-Please follow the below instructions to setup the code in your environment.
+Follow these steps to set up the project in your local environment.
 
 ### Prerequisites
 
-1. **Anaconda**: Make sure to have Anaconda installed on your system. You can download it from Anaconda's official website.
+Ensure you have the following installed:
 
-2. **Preprocessed Dataset**: Obtain the preprocessed dataset using the `datagen.py` in the following format:
-  
+1. **Anaconda**: Download and install [Anaconda](https://www.anaconda.com/products/distribution).
+2. **Preprocessed Dataset**: Obtain the preprocessed dataset in the following format:
    ```bash
    ProcessedDatasets/
    └── Task/
@@ -43,26 +41,28 @@ Please follow the below instructions to setup the code in your environment.
    DemoData folder should include a sample csv for your reference.
    See the [dataset format](#dataset-format) for more details.
 
-3. **Operating System**: While the project is designed to be compatible with various operating systems, Ubuntu is the preferred environment.
-
+3. **Operating System**: While the project is cross-platform, Ubuntu is the recommended environment.
 
 ### Installation
 
-1. Create the conda environment using the environment file. ``` conda env create -f environment.yml```
-2. Verify PyTorch was installed correclty.
-3. Place the preprocessed data in the **ProcessedData**.
-4. Verify the configuration is as required in ```config.py```. Learning parameters are defined in ```config.py```.
+1. Clone the repository and navigate to the project folder:
+   ```bash
+   git clone https://github.com/your-repo/MTRSAP.git
+   cd MTRSAP
+   ```
+
+2. Create a Conda environment using the provided `environment.yml`:
+   ```bash
+   conda env create -f environment.yml
+   ```
+
+3. Verify that **PyTorch** and other dependencies were installed correctly.
+
+4. Place the preprocessed dataset into the `ProcessedData` directory.
+
+5. Adjust configuration parameters as needed by editing `config.py`, where you can define learning rates, batch sizes, and other training parameters.
 
 ## Usage
-
-
-To reproduce gesture recognition results use the following command with the original configuration.
-
-*Note that the dataset required is not publicly available. Hence, please reach out to the original authors to obtain the data used for this work.*
-1. [JIGSAWS Dataset](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/)
-2. [TCN Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master)
-
-The model parameters and dataloader scripts needs to be changed to suit custom datasets. The current dataloader and config is designed for the above dataset. 
 
 To run the model for gesture recognition with the default settings, use the following command:
 
@@ -75,22 +75,25 @@ To run the complete suite of experiments for gesture recognition using different
 bash run_experiment.sh
 ```
 
-Results will be in the **results** folder specifically in following files.
-1. ```train_results.json``` : Detailed results for each subject in LOUO setup.
-2. ```Train_{task}_{model}_{date-time}.csv ``` : Final results of the run.
 
+### Results
 
+The results will be saved in the `results/` directory, including:
+1. **`train_results.json`**: Detailed results for each subject in the Leave-One-User-Out (LOUO) setup.
+2. **`Train_{task}_{model}_{datetime}.csv`**: Final results of the training run.
 
 ## Contributing
 
-Please feel free to improve the model, add features and use this for research purposes.
+We encourage you to contribute to the project by improving the model, adding new features, or using it for further research. Feel free to submit pull requests or raise issues.
 
-If you have any questions, please feel free to reach out using the following email addresses (cjh9fw@virginia.edu, ydq9ag@virginia.edu)
+For any questions, please reach out to us at:
+- cjh9fw@virginia.edu
+- ydq9ag@virginia.edu
+
 ## License
 
-The code for this project is made available to the public via the  [MIT License](https://opensource.org/licenses/MIT).
+This project is distributed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Acknowledgements
 
-Special Thanks to [Colin Lea](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master) for providing features for the dataset and inspiring further development in action segmentation. 
-
+Special thanks to [Colin Lea](https://github.com/colincsl/TemporalConvolutionalNetworks) for providing foundational work on action segmentation, which inspired this research.

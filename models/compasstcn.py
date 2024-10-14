@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 from collections import OrderedDict
 import torch.nn.functional as F
-
-
 class GlobalMaxPooling1D(nn.Module):
 
     def __init__(self, data_format='channels_last'):

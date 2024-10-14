@@ -1,9 +1,9 @@
-import math
 
 import torch
 import torch.nn as nn
 
-
+from .unet import *
+import math
 
 class PositionalEncoding(nn.Module):
 
@@ -126,7 +126,7 @@ class CNN_Decoder(nn.Module):
         # print('decoder_out',x.shape)
         return x
     
-    
+
 class TransformerModel(nn.Module):
     
     def __init__(self, input_dim, output_dim, d_model, nhead, num_layers, hidden_dim, layer_dim,encoder_params, decoder_params,dropout=0.01):
@@ -151,7 +151,8 @@ class TransformerModel(nn.Module):
         num_layers = 10
         num_f_maps = 64
         features_dim = 2048
-        
+
+
         self.pe = PositionalEncoding(d_model=d_model,max_len=32, dropout=dropout)
         self.fc = nn.Linear(input_dim, features_dim)
         
@@ -168,7 +169,7 @@ class TransformerModel(nn.Module):
         x = self.pe(x)
         
         x = self.transformer(x)
-        
+
         # x = x.permute(0, 2, 1)  # Reshape input to [batch_size, seq_len,features, ]
         # x = self.decoder(x)
         # x = x.permute(0, 2, 1)  # Reshape input to [batch_size, seq_len,features, ]
