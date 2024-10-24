@@ -115,3 +115,20 @@ The code for this project is made available to the public via the  [MIT License]
 
 Special Thanks to [Colin Lea](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master) for providing features for the dataset and inspiring further development in action segmentation. 
 
+## Citation
+If you find this dataset, model, or any of the features helpful in your research, please cite our paper. Proper citation helps the community and allows us to continue providing these resources.
+
+You can cite the paper using the following BibTeX entry:
+
+```bibtex
+@article{weerasinghe2024multimodal,
+  title={Multimodal Transformers for Real-Time Surgical Activity Prediction},
+  author={Weerasinghe, Keshara and Roodabeh, Seyed Hamid Reza and Hutchinson, Kay and Alemzadeh, Homa},
+  journal={arXiv preprint arXiv:2403.06705},
+  year={2024}
+}
+```
+Thank you for your support!
+
+
+
