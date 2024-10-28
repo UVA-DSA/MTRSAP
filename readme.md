@@ -68,7 +68,7 @@ In summary, all these data folders need to be present inside this repository to 
 
 1. Run the preprocessing script to generate the processed dataset. Replace `{task}` with the desired task, from the set of available tasks ("Peg_Transfer", "Suturing", "Knot_Tying", "Needle_Passing").
 ```bash
-python data/datagen.py {tasks}
+python data/datagen.py {task}
 ```
 The preprocessed data should be generated in the following format, where `Task` is the same as the one you specified when running the `datagen` script:
    ```bash
@@ -82,7 +82,7 @@ The preprocessed data should be generated in the following format, where `Task` 
    MTML_position_x, MTML_position_y, MTML_position_z, MTML_rotation_0, ..., resnet_0, ..., seg_0, ..., label
    ```  
 
-DemoData folder should include a sample csv for your reference. See the [dataset format](#dataset-format) for more details.
+DemoData folder should include a sample csv for your reference.
 
 
 ### Run the Recognition Pipeline
