@@ -49,9 +49,19 @@ Please follow the below instructions to setup the code in your environment.
 In summary, all these data folders need to be present inside this repository to proceed with running pipelines:
   ```bash
    Datasets/
+   └── dV/
    SpatialCNN/
+   └── data/
+       splits/
    segmentation_masks/
+   └── outputs/
+       pca_features/
+       pca_features_normalized/
    resnet_features
+   └── Knot_Typing/
+       Needle_Passing/
+       Suturing/
+       Peg_Transfer/
    ```
 
 ### Preprocessing the data
