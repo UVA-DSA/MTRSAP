@@ -79,7 +79,7 @@ The preprocessed data should be generated in the following format, where `Task` 
    Each CSV file should have columns such as for the modalities:
 
    ```
-   MTML_position_x, MTML_position_y, MTML_position_z, MTML_rotation_0, ..., resnet_0, ..., seg_0, ..., label
+   PSML_poaition_x, ..., PSMR_position_x, ..., left_holding, ..., right_holding, ..., label
    ```  
 
 DemoData folder should include a sample csv for your reference.
