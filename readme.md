@@ -32,9 +32,11 @@ Please follow the below instructions to setup the code in your environment.
 
 ### Installation
 
-1. Create the conda environment using the environment file. ``` conda env create -f environment.yml```
-2. Verify PyTorch was installed correclty.
-3. Verify the configuration is as required in ```config.py```. Learning parameters are defined in ```config.py```.
+1. Create the conda environment using the environment file. ``` conda create -n mtrsap python=3.9 -y```
+2. Activate the newly created environment ```conda activate mtrsap```
+3. Install required python packages ```pip install -r requirements.txt```
+4. Verify PyTorch was installed correclty.
+5. Verify the configuration is as required in ```config.py```. Learning parameters are defined in ```config.py```.
 
 ## Usage
 
@@ -131,12 +133,14 @@ If you find this dataset, model, or any of the features helpful in your research
 You can cite the paper using the following BibTeX entry:
 
 ```bibtex
-@article{weerasinghe2024multimodal,
-  title={Multimodal Transformers for Real-Time Surgical Activity Prediction},
-  author={Weerasinghe, Keshara and Roodabeh, Seyed Hamid Reza and Hutchinson, Kay and Alemzadeh, Homa},
-  journal={arXiv preprint arXiv:2403.06705},
-  year={2024}
-}
+@INPROCEEDINGS{10611048,
+  author={Weerasinghe, Keshara and Reza Roodabeh, Seyed Hamid and Hutchinson, Kay and Alemzadeh, Homa},
+  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)}, 
+  title={Multimodal Transformers for Real-Time Surgical Activity Prediction}, 
+  year={2024},
+  pages={13323-13330},
+  keywords={Computational modeling;Computer architecture;Kinematics;Streaming media;Predictive models;Transformers;Real-time systems},
+  doi={10.1109/ICRA57147.2024.10611048}}
 ```
 Thank you for your support!
 
