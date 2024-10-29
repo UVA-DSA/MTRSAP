@@ -35,7 +35,7 @@ Please follow the below instructions to setup the code in your environment.
 1. Create the conda environment using the environment file. ``` conda create -n mtrsap python=3.9 -y```
 2. Activate the newly created environment ```conda activate mtrsap```
 3. Install required python packages ```pip install -r requirements.txt```
-4. Verify PyTorch was installed correclty.
+4. Verify PyTorch was installed correclty. [Install Torch](https://pytorch.org/get-started/locally/)
 5. Verify the configuration is as required in ```config.py```. Learning parameters are defined in ```config.py```.
 
 ## Usage
