@@ -37,7 +37,8 @@ def get_dataloaders(tasks: List[str],
                     cast: bool,
                     normalizer: str,
                     step: int = -1,
-                    single_window_label: bool = False                    
+                    single_window_label: bool = False,
+                    train_sliding_window: bool = True                    
                     ):
     
     from typing import List
@@ -100,7 +101,7 @@ def get_dataloaders(tasks: List[str],
             seg_path = os.path.join(segmentation_features_save_path, file_base[9:])
             segmentation_features_valid.append(seg_path) 
     
-    train_dataset = LOUO_Dataset(train_kin_files, observation_window, prediction_window, step=step, onehot=one_hot, class_names=class_names, feature_names=feature_names, trajectory_feature_names=trajectory_feature_names, resnet_files_path=train_resnet_files, colin_files_path=colin_features_train, segmentation_files_path=segmentation_features_train, normalizer=normalizer, sliding_window=True)
+    train_dataset = LOUO_Dataset(train_kin_files, observation_window, prediction_window, step=step, onehot=one_hot, class_names=class_names, feature_names=feature_names, trajectory_feature_names=trajectory_feature_names, resnet_files_path=train_resnet_files, colin_files_path=colin_features_train, segmentation_files_path=segmentation_features_train, normalizer=normalizer, sliding_window=train_sliding_window)
     valid_dataset = LOUO_Dataset(valid_kin_files, observation_window, prediction_window, step=step, onehot=one_hot, class_names=class_names, feature_names=feature_names, trajectory_feature_names=trajectory_feature_names, resnet_files_path=valid_resnet_files, colin_files_path=colin_features_valid, segmentation_files_path=segmentation_features_valid, normalizer=normalizer, sliding_window=False)
 
     target_type = torch.float32 if one_hot else torch.long

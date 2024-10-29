@@ -224,11 +224,12 @@ def save_artifacts(model, train_records, valid_records, valid_dataloader):
 
 ### -------------------------- DATA -----------------------------------------------------
 tasks = ["Suturing"]
-Features = kinematic_feature_names_jigsaws[38:] + state_variables  #kinematic features + state variable features
+Features = kinematic_feature_names + state_variables  #kinematic features + state variable features
 # Features = kinematic_feature_names_jigsaws_no_rot_ps + state_variables
 
 one_hot = False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 observation_window = 10
 prediction_window = 10
 batch_size = 64
