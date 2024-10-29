@@ -2,7 +2,8 @@ import torch
 import numpy as np
 import json
 from data import get_dataloaders, generate_data
-from config import *
+from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
+from config import modality_mapping, learning_params, dataloader_params, transformer_params, tcn_model_params, RECORD_RESULTS
 from models.utils import reset_parameters, traintest_loop, rolling_average
 from models import initiate_model
 from utils import json_to_csv
@@ -48,7 +49,7 @@ task = "Suturing"
 # context = dataloader_params["context"]
 
 if context in modality_mapping:
-    Features = modality_mapping[context]
+    Features, include_resnet_features, include_colin_features, include_segmentation_features = modality_mapping[context]
 else:
     print("Invalid modality choice!")
     exit(-1)
@@ -60,33 +61,34 @@ observation_window = dataloader_params["observation_window"],
 if(dataloader == "v1"):
     train_dataloader, valid_dataloader = generate_data(dataloader_params["user_left_out"],task,Features, dataloader_params["batch_size"], observation_window)
 elif dataloader == "v2":
-    # train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
-    #                                                     subject_id_to_exclude=dataloader_params["user_left_out"],
-    #                                                     observation_window=dataloader_params["observation_window"],
-    #                                                     prediction_window=dataloader_params["prediction_window"],
-    #                                                     batch_size=dataloader_params["batch_size"],
-    #                                                     one_hot=one_hot,
-    #                                                     class_names=class_names['Suturing'],
-    #                                                     feature_names=Features,
-    #                                                     trajectory_feature_names=trajectory_feature_names,
-    #                                                     include_resnet_features=include_resnet_features,
-    #                                                     include_segmentation_features=include_segmentation_features,
-    #                                                     include_colin_features=include_colin_features,
-    #                                                     cast=cast,
-    #                                                     normalizer=normalizer,
-    #                                                     step=step)
-    train_dataloader, valid_dataloader = get_dataloaders([task],
-                                                     dataloader_params["user_left_out"],
-                                                     dataloader_params["observation_window"],
-                                                     dataloader_params["prediction_window"],
-                                                     dataloader_params["batch_size"],
-                                                     dataloader_params["one_hot"],
-                                                     class_names = class_names['Suturing'],
-                                                     feature_names = Features,
-                                                     include_resnet_features=dataloader_params["include_image_features"],
-                                                     cast = dataloader_params["cast"],
-                                                     normalizer = dataloader_params["normalizer"],
-                                                     step=dataloader_params["step"])
+    train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
+                                                        subject_id_to_exclude=dataloader_params["user_left_out"],
+                                                        observation_window=dataloader_params["observation_window"],
+                                                        prediction_window=dataloader_params["prediction_window"],
+                                                        batch_size=dataloader_params["batch_size"],
+                                                        one_hot=dataloader_params["one_hot"],
+                                                        class_names=class_names['Suturing'],
+                                                        feature_names=Features,
+                                                        trajectory_feature_names=trajectory_feature_names,
+                                                        include_resnet_features=include_resnet_features,
+                                                        include_segmentation_features=include_segmentation_features,
+                                                        include_colin_features=include_colin_features,
+                                                        cast=dataloader_params["cast"],
+                                                        normalizer=dataloader_params["normalizer"],
+                                                        step=dataloader_params["step"],
+                                                        train_sliding_window=False)
+    # train_dataloader, valid_dataloader = get_dataloaders([task],
+    #                                                  dataloader_params["user_left_out"],
+    #                                                  dataloader_params["observation_window"],
+    #                                                  dataloader_params["prediction_window"],
+    #                                                  dataloader_params["batch_size"],
+    #                                                  dataloader_params["one_hot"],
+    #                                                  class_names = class_names['Suturing'],
+    #                                                  feature_names = Features,
+    #                                                  include_resnet_features=dataloader_params["include_image_features"],
+    #                                                  cast = dataloader_params["cast"],
+    #                                                  normalizer = dataloader_params["normalizer"],
+    #                                                  step=dataloader_params["step"])
 
     print("datasets lengths: ", len(train_dataloader.dataset), len(valid_dataloader.dataset))
     print("X shape: ", train_dataloader.dataset.X.shape, valid_dataloader.dataset.X.shape)
@@ -149,18 +151,34 @@ for i in range(REPEAT):
             if(dataloader == "v1"):
                 train_dataloader, valid_dataloader = generate_data(user_left_out,task,Features, dataloader_params["batch_size"], observation_window)
             else:
-                train_dataloader, valid_dataloader = get_dataloaders([task],
-                                                                user_left_out,
-                                                                dataloader_params["observation_window"],
-                                                                dataloader_params["prediction_window"],
-                                                                dataloader_params["batch_size"],
-                                                                dataloader_params["one_hot"],
-                                                                class_names = class_names['Suturing'],
-                                                                feature_names = Features,
-                                                                include_image_features=dataloader_params["include_image_features"],
-                                                                cast = dataloader_params["cast"],
-                                                                normalizer = dataloader_params["normalizer"],
-                                                                step=dataloader_params["step"])
+                # train_dataloader, valid_dataloader = get_dataloaders([task],
+                #                                                 user_left_out,
+                #                                                 dataloader_params["observation_window"],
+                #                                                 dataloader_params["prediction_window"],
+                #                                                 dataloader_params["batch_size"],
+                #                                                 dataloader_params["one_hot"],
+                #                                                 class_names = class_names['Suturing'],
+                #                                                 feature_names = Features,
+                #                                                 include_image_features=dataloader_params["include_image_features"],
+                #                                                 cast = dataloader_params["cast"],
+                #                                                 normalizer = dataloader_params["normalizer"],
+                #                                                 step=dataloader_params["step"])
+                train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
+                                                        subject_id_to_exclude=dataloader_params["user_left_out"],
+                                                        observation_window=dataloader_params["observation_window"],
+                                                        prediction_window=dataloader_params["prediction_window"],
+                                                        batch_size=dataloader_params["batch_size"],
+                                                        one_hot=dataloader_params["one_hot"],
+                                                        class_names=class_names['Suturing'],
+                                                        feature_names=Features,
+                                                        trajectory_feature_names=trajectory_feature_names,
+                                                        include_resnet_features=include_resnet_features,
+                                                        include_segmentation_features=include_segmentation_features,
+                                                        include_colin_features=include_colin_features,
+                                                        cast=dataloader_params["cast"],
+                                                        normalizer=dataloader_params["normalizer"],
+                                                        step=dataloader_params["step"],
+                                                        train_sliding_window=False)
                 
 
             val_loss,acc, all_acc, inference_time, edit_distance, f1_score = traintest_loop(train_dataloader,valid_dataloader,model,optimizer,scheduler,criterion, epochs, dataloader, subject, modality=context)

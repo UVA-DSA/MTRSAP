@@ -23,6 +23,16 @@ kinematic_feature_names = [ "PSML_position_x", "PSML_position_y", "PSML_position
             "PSMR_velocity_x", "PSMR_velocity_y", "PSMR_velocity_z", \
             "PSMR_orientation_x", "PSMR_orientation_y", "PSMR_orientation_z", "PSMR_orientation_w", \
             "PSMR_gripper_angle"]
+
+kinematic_feature_names_no_ori = [ "PSML_position_x", "PSML_position_y", "PSML_position_z", \
+            "PSML_velocity_x", "PSML_velocity_y", "PSML_velocity_z", \
+            "PSML_orientation_x", "PSML_orientation_y", "PSML_orientation_z", "PSML_orientation_w", \
+            "PSML_gripper_angle", \
+            "PSMR_position_x", "PSMR_position_y", "PSMR_position_z", \
+            "PSMR_velocity_x", "PSMR_velocity_y", "PSMR_velocity_z", \
+            "PSMR_orientation_x", "PSMR_orientation_y", "PSMR_orientation_z", "PSMR_orientation_w", \
+            "PSMR_gripper_angle"]
+
 kinematic_feature_names_jigsaws = [
                                         "MTML_position_x", "MTML_position_y", "MTML_position_z",
                                         "MTML_rotation_0", "MTML_rotation_1", "MTML_rotation_2", "MTML_rotation_3", "MTML_rotation_4", "MTML_rotation_5", "MTML_rotation_6", "MTML_rotation_7", "MTML_rotation_8",

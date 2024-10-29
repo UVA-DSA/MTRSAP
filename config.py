@@ -1,5 +1,5 @@
 import torch
-from data import resnet_features,kinematic_feature_names,colin_features, segmentation_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
+from data import resnet_features,kinematic_feature_names, kinematic_feature_names_no_ori, colin_features, segmentation_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 
 
 RECORD_RESULTS = True
@@ -82,29 +82,54 @@ dataloader_params = {
 }
 
 # --context 
-modality_mapping = {
-    0: kinematic_feature_names_jigsaws[38:],  # Kinematic (38)
-    1: kinematic_feature_names_jigsaws_patient_position,  # Kinematic (14)
-    2: state_variables,  # Context (GT)
-    3: colin_features,  # Colins Features
-    4: resnet_features,  # ResNet50 Features
-    5: segmentation_features,  # Segmentation Masks Features
-    6: state_variables + colin_features,  # Context(GT) + Colins Features
-    7: kinematic_feature_names_jigsaws[38:] + state_variables,  # Kinematic (38) + Context(GT)
-    8: kinematic_feature_names_jigsaws_patient_position + state_variables,  # Kinematic (14) + Context(GT)
-    9: kinematic_feature_names_jigsaws[38:] + colin_features,  # Kinematic (38) + Colins Features
-    10: kinematic_feature_names_jigsaws_patient_position + colin_features,  # Kinematic (14) + Colins Features
-    11: kinematic_feature_names_jigsaws[38:] + resnet_features,  # Kinematic (38) + ResNet50
-    12: kinematic_feature_names_jigsaws_patient_position + resnet_features,  # Kinematic (14) + ResNet50
-    13: kinematic_feature_names_jigsaws[38:] + segmentation_features,  # Kinematic (38) + Segmentation Masks
-    14: kinematic_feature_names_jigsaws_patient_position + segmentation_features,  # Kinematic (14) + Segmentation Masks
-    15: kinematic_feature_names_jigsaws[38:] + state_variables + colin_features,  # Kinematic (38) + Context(GT) + Colins Features
-    16: kinematic_feature_names_jigsaws_patient_position + state_variables + colin_features,  # Kinematic (14) + Context(GT) + Colins Features
-    17: kinematic_feature_names_jigsaws[38:] + segmentation_features + state_variables,  # Kinematic (38) + Segmentation Masks + Context(GT)
-    18: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT)
-    19: kinematic_feature_names_jigsaws[38:] + segmentation_features + state_variables,  # Kinematic (38) + Segmentation Masks + Context(GT) + Colins
-    20: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
-    21: kinematic_feature_names_jigsaws_patient_position  + resnet_features,  # Kinematic (14)  + Resnet
+# modality_mapping = { # combination of kinematics and state, include_resnet, include_colin, include_segment
+#     0: kinematic_feature_names_jigsaws[38:],  # Kinematic (38)
+#     1: kinematic_feature_names_jigsaws_patient_position,  # Kinematic (14)
+#     2: state_variables,  # Context (GT)
+#     3: colin_features,  # Colins Features
+#     4: resnet_features,  # ResNet50 Features
+#     5: segmentation_features,  # Segmentation Masks Features
+#     6: state_variables + colin_features,  # Context(GT) + Colins Features
+#     7: kinematic_feature_names_jigsaws[38:] + state_variables,  # Kinematic (38) + Context(GT)
+#     8: kinematic_feature_names_jigsaws_patient_position + state_variables,  # Kinematic (14) + Context(GT)
+#     9: kinematic_feature_names_jigsaws[38:] + colin_features,  # Kinematic (38) + Colins Features
+#     10: kinematic_feature_names_jigsaws_patient_position + colin_features,  # Kinematic (14) + Colins Features
+#     11: kinematic_feature_names_jigsaws[38:] + resnet_features,  # Kinematic (38) + ResNet50
+#     12: kinematic_feature_names_jigsaws_patient_position + resnet_features,  # Kinematic (14) + ResNet50
+#     13: kinematic_feature_names_jigsaws[38:] + segmentation_features,  # Kinematic (38) + Segmentation Masks
+#     14: kinematic_feature_names_jigsaws_patient_position + segmentation_features,  # Kinematic (14) + Segmentation Masks
+#     15: kinematic_feature_names_jigsaws[38:] + state_variables + colin_features,  # Kinematic (38) + Context(GT) + Colins Features
+#     16: kinematic_feature_names_jigsaws_patient_position + state_variables + colin_features,  # Kinematic (14) + Context(GT) + Colins Features
+#     17: kinematic_feature_names_jigsaws[38:] + segmentation_features + state_variables,  # Kinematic (38) + Segmentation Masks + Context(GT)
+#     18: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT)
+#     19: kinematic_feature_names_jigsaws[38:] + segmentation_features + state_variables,  # Kinematic (38) + Segmentation Masks + Context(GT) + Colins
+#     20: kinematic_feature_names_jigsaws_patient_position + segmentation_features + state_variables,  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
+#     21: kinematic_feature_names_jigsaws_patient_position  + resnet_features,  # Kinematic (14)  + Resnet
+# }
+
+modality_mapping = { # combination of kinematics and state, include_resnet, include_colin, include_segment
+    0: (kinematic_feature_names, False, False, False),  # Kinematic (38)
+    1: (kinematic_feature_names_no_ori, False, False, False),  # Kinematic (14)
+    # 2: (state_variables),  # Context (GT)
+    # 3: colin_features,  # Colins Features
+    # 4: resnet_features,  # ResNet50 Features
+    # 5: segmentation_features,  # Segmentation Masks Features
+    # 6: state_variables + colin_features,  # Context(GT) + Colins Features
+    7: (kinematic_feature_names + state_variables, False, False, False),  # Kinematic (38) + Context(GT)
+    8: (kinematic_feature_names_no_ori + state_variables, False, False, False),  # Kinematic (14) + Context(GT)
+    9: (kinematic_feature_names, False, True, False),  # Kinematic (38) + Colins Features
+    10: (kinematic_feature_names_no_ori, False, True, False),  # Kinematic (14) + Colins Features
+    11: (kinematic_feature_names, True, False, False),  # Kinematic (38) + ResNet50
+    12: (kinematic_feature_names_no_ori, True, False, False),  # Kinematic (14) + ResNet50
+    13: (kinematic_feature_names, False, False, True),  # Kinematic (38) + Segmentation Masks
+    14: (kinematic_feature_names_no_ori, False, False, True),  # Kinematic (14) + Segmentation Masks
+    15: (kinematic_feature_names + state_variables, False, True, False),  # Kinematic (38) + Context(GT) + Colins Features
+    16: (kinematic_feature_names_no_ori + state_variables, False, True, False),  # Kinematic (14) + Context(GT) + Colins Features
+    17: (kinematic_feature_names + state_variables, False, False, True),  # Kinematic (38) + Segmentation Masks + Context(GT)
+    18: (kinematic_feature_names_no_ori + state_variables, False, False, True),  # Kinematic (14) + Segmentation Masks + Context(GT)
+    19: (kinematic_feature_names + state_variables, False, True, True),  # Kinematic (38) + Segmentation Masks + Context(GT) + Colins
+    20: (kinematic_feature_names_no_ori + state_variables, False, True, True),  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
+    21: (kinematic_feature_names_no_ori, True, False, False),  # Kinematic (14)  + Resnet
 }
 
 
