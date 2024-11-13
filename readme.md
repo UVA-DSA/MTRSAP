@@ -44,7 +44,7 @@ Please follow the below instructions to setup the code in your environment.
 
 1. The experiments are performed over the [JIGSAWS dataset](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/). The original dataset does not contain the transcirptions for "surgical state variables". To run the experiments, please download the [COMPASS dataset](https://github.com/UVA-DSA/COMPASS/tree/main) which includes JIGSAWS data with additional annotations, and place the `Datasets` forlder within this repository.
 
-2. The spatio-temporal features extracted from video files should be obtained from the authors, [Spatial Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master). After obtaining the spatial features from the original authors, please place them inside this repository. Make sure the folder containing the data is named `SpatialCNN`.
+2. The spatio-temporal features extracted from video files should be obtained from the authors, [Spatial Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master). After obtaining the spatial features from the original authors, please place them inside this repository. Make sure the folder containing the data is named `SpatialCNN`. The train/test splits specifications can also be obtained from [this git repository](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master/splits). Download the splits folder, and place it inside the `SpatialCNN` folder, next to the data folder.
 
 3. To run the data preprocessing scripts, recognition and prediction pipelines you also need the video features extracted by a ResNet50 backbone, and instrument segmentation masks. Please contact us to obtain these features (cjh9fw@virginia.edu, ydq9ag@virginia.edu). After obtaining these, place them inside this repository with the original folder names.
 
@@ -78,7 +78,7 @@ The preprocessed data should be generated in the following format, where `Task` 
    └── Task/
        └── Task_S0X_T0Y.csv
    ```
-   Each CSV file should have columns such as for the modalities:
+   Each CSV have the following columns:
 
    ```
    PSML_poaition_x, ..., PSMR_position_x, ..., left_holding, ..., right_holding, ..., label
@@ -107,7 +107,7 @@ Results will be in the **results** folder specifically in following files.
 
 ### Run the Prediction Pipeline
 
-To run the model for gesture recognition with the default settings, use the following command:
+To run the model for gesture prediction with the default settings, use the following command:
 
 ```bash
 python train_prediction.py
