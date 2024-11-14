@@ -134,7 +134,7 @@ You can cite the paper using the following BibTeX entry:
 
 ```bibtex
 @INPROCEEDINGS{10611048,
-  author={Weerasinghe, Keshara and Reza Roodabeh, Seyed Hamid and Hutchinson, Kay and Alemzadeh, Homa},
+  author={Weerasinghe, Keshara and Roodabeh, Seyed Hamid Reza and Hutchinson, Kay and Alemzadeh, Homa},
   booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)}, 
   title={Multimodal Transformers for Real-Time Surgical Activity Prediction}, 
   year={2024},
