@@ -1,8 +1,30 @@
+import os
 import torch
 from data import resnet_features,kinematic_feature_names, kinematic_feature_names_no_ori, colin_features, segmentation_features, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
 
 
 RECORD_RESULTS = True
+
+# Dataset locations. Keep all filesystem layout assumptions here so training can
+# be launched from any working directory.
+DATA_ROOT = "/standard/UVA-DSA/Robotic_Surgery_Datasets/MTRSAP"
+data_paths = {
+    "data_root": DATA_ROOT,
+    "datasets_dir": os.path.join(DATA_ROOT, "Datasets"),
+    "processed_datasets_dir": os.path.join(DATA_ROOT, "ProcessedDatasets"),
+    "features_dir": os.path.join(DATA_ROOT, "Features"),
+    "raw_dv_dir": os.path.join(DATA_ROOT, "Datasets", "dV"),
+    "raw_jigsaws_dir": os.path.join(DATA_ROOT, "Datasets", "JIGSAWS"),
+    "spatialcnn_dir": os.path.join(DATA_ROOT, "Features", "SpatialCNN"),
+    "resnet_features_dir": os.path.join(DATA_ROOT, "Features", "resnet_features"),
+    "image_features_dir": os.path.join(DATA_ROOT, "Features", "image_features"),
+    "segmentation_features_dir": os.path.join(
+        DATA_ROOT, "Features", "segmentation_masks", "pca_features_normalized"
+    ),
+    "segmentation_outputs_dir": os.path.join(
+        DATA_ROOT, "Features", "segmentation_masks", "outputs"
+    ),
+}
 
 tcn_model_params = {
     "class_num": 7,
@@ -131,5 +153,4 @@ modality_mapping = { # combination of kinematics and state, include_resnet, incl
     20: (kinematic_feature_names_no_ori + state_variables, False, True, True),  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
     21: (kinematic_feature_names_no_ori, True, False, False),  # Kinematic (14)  + Resnet
 }
-
 

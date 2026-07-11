@@ -3,13 +3,14 @@ import numpy as np
 import json
 from data import get_dataloaders, generate_data
 from data import kinematic_feature_names, trajectory_feature_names, kinematic_feature_names_jigsaws, kinematic_feature_names_jigsaws_patient_position, class_names, all_class_names, state_variables
-from config import modality_mapping, learning_params, dataloader_params, transformer_params, tcn_model_params, RECORD_RESULTS
+from config import modality_mapping, learning_params, dataloader_params, transformer_params, tcn_model_params, RECORD_RESULTS, data_paths
 from models.utils import reset_parameters, traintest_loop, rolling_average
 from models import initiate_model
 from utils import json_to_csv
 
 import datetime
 import argparse
+import os
 
 
 torch.manual_seed(0)
@@ -25,6 +26,7 @@ parser = argparse.ArgumentParser(description="A simple command-line argument par
 parser.add_argument("--model", help="Specify which model to run", required=True)
 parser.add_argument("--dataloader", help="Specify which dataloader", required=True)
 parser.add_argument("--modality", help="Specify which modality combo", required=True, type=int)
+parser.add_argument("--task", help="Specify the surgical task", default="Suturing")
 # parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
 
 # Parse the arguments
@@ -34,16 +36,13 @@ args = parser.parse_args()
 model_name = args.model
 dataloader = args.dataloader
 context = args.modality
+task = args.task
 # verbose_mode = args.verbose
 
 
 # manual seeding ensure reproducibility
 # torch.manual_seed(0)
 
-
-
-# tasks and features to be included
-task = "Suturing"
 
 
 # context = dataloader_params["context"]
@@ -53,13 +52,30 @@ if context in modality_mapping:
 else:
     print("Invalid modality choice!")
     exit(-1)
+
+if task not in class_names:
+    parser.error(f"Unknown task '{task}'. Choose one of: {', '.join(class_names)}")
+
+required_paths = {
+    "processed task data": os.path.join(data_paths["processed_datasets_dir"], task),
+}
+if include_resnet_features:
+    required_paths["ResNet features"] = os.path.join(data_paths["resnet_features_dir"], task)
+if include_colin_features:
+    required_paths["SpatialCNN features"] = data_paths["spatialcnn_dir"]
+if include_segmentation_features:
+    required_paths["segmentation features"] = data_paths["segmentation_features_dir"]
+
+missing_paths = [f"{label}: {path}" for label, path in required_paths.items() if not os.path.isdir(path)]
+if missing_paths:
+    parser.error("Required data directories do not exist:\n  " + "\n  ".join(missing_paths))
  
 epochs = learning_params["epochs"]
 observation_window = dataloader_params["observation_window"],
 
 
 if(dataloader == "v1"):
-    train_dataloader, valid_dataloader = generate_data(dataloader_params["user_left_out"],task,Features, dataloader_params["batch_size"], observation_window)
+    train_dataloader, valid_dataloader = generate_data(dataloader_params["user_left_out"], task, Features, dataloader_params["batch_size"], observation_window, data_paths["processed_datasets_dir"])
 elif dataloader == "v2":
     train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
                                                         subject_id_to_exclude=dataloader_params["user_left_out"],
@@ -67,7 +83,7 @@ elif dataloader == "v2":
                                                         prediction_window=dataloader_params["prediction_window"],
                                                         batch_size=dataloader_params["batch_size"],
                                                         one_hot=dataloader_params["one_hot"],
-                                                        class_names=class_names['Suturing'],
+                                                        class_names=class_names[task],
                                                         feature_names=Features,
                                                         trajectory_feature_names=trajectory_feature_names,
                                                         include_resnet_features=include_resnet_features,
@@ -76,7 +92,8 @@ elif dataloader == "v2":
                                                         cast=dataloader_params["cast"],
                                                         normalizer=dataloader_params["normalizer"],
                                                         step=dataloader_params["step"],
-                                                        train_sliding_window=False)
+                                                        train_sliding_window=False,
+                                                        data_paths=data_paths)
     # train_dataloader, valid_dataloader = get_dataloaders([task],
     #                                                  dataloader_params["user_left_out"],
     #                                                  dataloader_params["observation_window"],
@@ -149,7 +166,7 @@ for i in range(REPEAT):
             user_left_out = subject
 
             if(dataloader == "v1"):
-                train_dataloader, valid_dataloader = generate_data(user_left_out,task,Features, dataloader_params["batch_size"], observation_window)
+                train_dataloader, valid_dataloader = generate_data(user_left_out, task, Features, dataloader_params["batch_size"], observation_window, data_paths["processed_datasets_dir"])
             else:
                 # train_dataloader, valid_dataloader = get_dataloaders([task],
                 #                                                 user_left_out,
@@ -164,12 +181,12 @@ for i in range(REPEAT):
                 #                                                 normalizer = dataloader_params["normalizer"],
                 #                                                 step=dataloader_params["step"])
                 train_dataloader, valid_dataloader = get_dataloaders(tasks=[task],
-                                                        subject_id_to_exclude=dataloader_params["user_left_out"],
+                                                        subject_id_to_exclude=user_left_out,
                                                         observation_window=dataloader_params["observation_window"],
                                                         prediction_window=dataloader_params["prediction_window"],
                                                         batch_size=dataloader_params["batch_size"],
                                                         one_hot=dataloader_params["one_hot"],
-                                                        class_names=class_names['Suturing'],
+                                                        class_names=class_names[task],
                                                         feature_names=Features,
                                                         trajectory_feature_names=trajectory_feature_names,
                                                         include_resnet_features=include_resnet_features,
@@ -178,7 +195,8 @@ for i in range(REPEAT):
                                                         cast=dataloader_params["cast"],
                                                         normalizer=dataloader_params["normalizer"],
                                                         step=dataloader_params["step"],
-                                                        train_sliding_window=False)
+                                                        train_sliding_window=False,
+                                                        data_paths=data_paths)
                 
 
             val_loss,acc, all_acc, inference_time, edit_distance, f1_score = traintest_loop(train_dataloader,valid_dataloader,model,optimizer,scheduler,criterion, epochs, dataloader, subject, modality=context)
@@ -204,4 +222,4 @@ if(RECORD_RESULTS):
 
     csv_name = f'Train_{task}_{model_name}_{formatted_datetime}_MODALITY_{context}_num_features{len(Features)}_LOUO_window{dataloader_params["observation_window"]}.csv'
          
-    json_to_csv(csv_name, json_file)    
+    json_to_csv(csv_name, json_file)

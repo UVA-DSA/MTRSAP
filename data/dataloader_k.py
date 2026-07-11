@@ -68,10 +68,11 @@ class TimeSeriesDataset(Dataset):
         self.y = self.y[indices]
 
 
-def generate_data(subject_id, task, features, batch_size, seq_len):    
+def generate_data(subject_id, task, features, batch_size, seq_len,
+                  processed_datasets_dir="./ProcessedDatasets"):
     
-    csv_path = './ProcessedDatasets/' + task
-    csv_files = glob.glob(csv_path + "/*.csv")
+    csv_path = os.path.join(processed_datasets_dir, task)
+    csv_files = glob.glob(os.path.join(csv_path, "*.csv"))
     
     
     train_df_list = []
@@ -133,5 +134,3 @@ def generate_data(subject_id, task, features, batch_size, seq_len):
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
     return train_dataloader, test_dataloader
- 
-    
