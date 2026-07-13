@@ -11,8 +11,9 @@ from utils import json_to_csv
 import datetime
 import argparse
 
-
-torch.manual_seed(0)
+random_seed = torch.seed()
+print(f"random seed: {random_seed}")
+# torch.manual_seed(0)
 
 
 # end of imports #
