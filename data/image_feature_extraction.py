@@ -8,7 +8,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 import warnings
 warnings.filterwarnings('ignore')
 
-from .datagen import JIGSAWS_tasks, image_features_save_path
+from datagen import JIGSAWS_tasks, image_features_save_path
 
 
 class ResNet50Features(torch.nn.Module):
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     i = 0
     # for task in JIGSAWS_tasks:
-    for task in ['Peg_Transfer']:
+    for task in ['Suturing']:
 
         video_paths = list()
 
