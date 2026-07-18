@@ -42,29 +42,24 @@ Please follow the below instructions to setup the code in your environment.
 
 ### Obtain the Required Data
 
-1. The experiments are performed over the [JIGSAWS dataset](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/). The original dataset does not contain the transcirptions for "surgical state variables". To run the experiments, please download the [COMPASS dataset](https://github.com/UVA-DSA/COMPASS/tree/main) which includes JIGSAWS data with additional annotations, and place the `Datasets` forlder within this repository.
+1. The experiments are performed over the [JIGSAWS dataset](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/). The original dataset does not contain the transcriptions for "surgical state variables". To run the experiments, please download the [COMPASS dataset](https://github.com/UVA-DSA/COMPASS/tree/main), which includes JIGSAWS data with additional annotations.
 
-2. The spatio-temporal features extracted from video files should be obtained from the authors, [Spatial Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master). After obtaining the spatial features from the original authors, please place them inside this repository. Make sure the folder containing the data is named `SpatialCNN`. The train/test splits specifications can also be obtained from [this git repository](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master/splits). Download the splits folder, and place it inside the `SpatialCNN` folder, next to the data folder.
+2. The spatio-temporal features extracted from video files should be obtained from the authors, [Spatial Features](https://github.com/colincsl/TemporalConvolutionalNetworks/tree/master).
 
-3. To run the data preprocessing scripts, recognition and prediction pipelines you also need the video features extracted by a ResNet50 backbone, and instrument segmentation masks. Please contact us to obtain these features (cjh9fw@virginia.edu, ydq9ag@virginia.edu). After obtaining these, place them inside this repository with the original folder names.
+3. To run the data preprocessing scripts, recognition and prediction pipelines you also need the video features extracted by a ResNet50 backbone, and instrument segmentation masks. Please contact us to obtain these features (cjh9fw@virginia.edu, ydq9ag@virginia.edu).
 
-In summary, all these data folders need to be present inside this repository to proceed with running pipelines:
+Set `DATA_ROOT` in `config.py` to the directory containing the prepared datasets and features. The current directory structure is:
   ```bash
-   Datasets/
-   └── dV/
-   SpatialCNN/
-   └── data/
-       splits/
-   segmentation_masks/
-   └── outputs/
-       pca_features/
-       pca_features_normalized/
-   resnet_features
-   └── Knot_Typing/
-       Needle_Passing/
-       Suturing/
-       Peg_Transfer/
-   ```
+   <DATA_ROOT>/
+   ├── ProcessedDatasets/
+   │   └── <Task>/
+   └── Features/
+       ├── SpatialCNN/
+       ├── resnet_features/
+       │   └── <Task>/
+       └── segmentation_masks/
+           └── pca_features_normalized/
+  ```
 
 ### Preprocessing the data
 
@@ -72,7 +67,7 @@ In summary, all these data folders need to be present inside this repository to 
 ```bash
 python data/datagen.py {task}
 ```
-The preprocessed data should be generated in the following format, where `Task` is the same as the one you specified when running the `datagen` script:
+The preprocessing script currently writes to `./ProcessedDatasets`. Before training, place that output under the configured `DATA_ROOT` in the following format, where `Task` is the same as the one specified when running `datagen.py`:
    ```bash
    ProcessedDatasets/
    └── Task/
@@ -89,20 +84,40 @@ DemoData folder should include a sample csv for your reference.
 
 ### Run the Recognition Pipeline
 
-To run the model for gesture recognition with the default settings, use the following command:
+Before running, set `DATA_ROOT` in `config.py`. The same file contains `modality_mapping`, `transformer_params`, `learning_params`, and `dataloader_params` for selecting the inputs and configuring the model, training, and data windows.
+
+To run gesture recognition directly for one task and modality:
 
 ```bash
-python train_recognition.py --model transformer --dataloader v2 --modality 16
+python train_recognition.py --model transformer --dataloader v2 --task Suturing --modality 16
 ```
 
-To run the complete suite of experiments for gesture recognition using different modalities.
+On Rivanna, submit one modality through `slurm.sh`:
+
 ```bash
-bash run_experiment.sh
+mkdir -p logs
+sbatch --export=ALL,TASK=Suturing,MODALITY=16 slurm.sh
 ```
 
-Results will be in the **results** folder specifically in following files.
-1. ```train_results.json``` : Detailed results for each subject in LOUO setup.
-2. ```Train_{task}_{model}_{date-time}.csv ``` : Final results of the run.
+To run all configured modality numbers sequentially in one Slurm job:
+
+```bash
+sbatch run_experiment.sh
+```
+
+To run only a range of modality numbers, set `FIRST_MODALITY` and `LAST_MODALITY` when submitting:
+
+```bash
+sbatch --export=ALL,FIRST_MODALITY=6,LAST_MODALITY=12 run_experiment.sh
+```
+
+Each recognition run is saved under:
+
+```text
+results/recognition/<Task>/modality_<N>/<timestamp>_<model>_job-<job-id>/
+```
+
+The run directory contains the saved configuration, detailed results, summary CSV, checkpoints, and model outputs.
 
 
 ### Run the Prediction Pipeline
@@ -143,6 +158,4 @@ You can cite the paper using the following BibTeX entry:
   doi={10.1109/ICRA57147.2024.10611048}}
 ```
 Thank you for your support!
-
-
 
