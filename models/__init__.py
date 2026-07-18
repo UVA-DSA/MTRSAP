@@ -9,14 +9,24 @@ from .utils import ReduceLROnPlateau
 
 def initiate_model(input_dim, output_dim, transformer_params, learning_params, tcn_model_params, model_name):
 
-    d_model, nhead, num_layers, hidden_dim, layer_dim, encoder_params, decoder_params = transformer_params.values()
+    d_model = transformer_params["d_model"]
+    nhead = transformer_params["nhead"]
+    num_layers = transformer_params["num_layers"]
+    batch_first = transformer_params.get("batch_first", False)
+    hidden_dim = transformer_params["hidden_dim"]
+    layer_dim = transformer_params["layer_dim"]
+    encoder_params = transformer_params["encoder_params"]
+    decoder_params = transformer_params["decoder_params"]
 
-    lr, epochs, weight_decay, patience = learning_params.values()
+    lr = learning_params["lr"]
+    weight_decay = learning_params["weight_decay"]
+    patience = learning_params["patience"]
 
     if (model_name == 'transformer'):
         print("Creating Transformer")
         model = TransformerModel(input_dim=input_dim, output_dim=output_dim, d_model=d_model, nhead=nhead, num_layers=num_layers,
-                                 hidden_dim=hidden_dim, layer_dim=layer_dim, encoder_params=encoder_params, decoder_params=decoder_params)
+                                 hidden_dim=hidden_dim, layer_dim=layer_dim, encoder_params=encoder_params,
+                                 decoder_params=decoder_params, batch_first=batch_first)
 
     elif (model_name == 'tcn'):
         print("Creating TCN")

@@ -172,17 +172,21 @@ def eval_loop(model, test_dataloader, criterion, dataloader):
         return np.mean(losses), accuracy, inference_time,  ypreds, gts, edit_distance, f1_score
 
 # train loop, calls evaluation every epoch
-def traintest_loop(train_dataloader, test_dataloader, model, optimizer, scheduler, criterion, epochs, dataloader, subject, modality):
+def traintest_loop(train_dataloader, test_dataloader, model, optimizer, scheduler, criterion, epochs, dataloader, subject, modality, output_dir="./results"):
 
 
     accuracy = 0
     total_accuracy = []
     
     ypreds, gts = [],[]
-    highest_acc = 0
+    highest_acc = float('-inf')
     highestypreds, highestygts = [],[]
     
-    file_path = f'./model_weights/Modality_M{modality}_S0{subject}_best_model_weights.pth'
+    checkpoint_dir = os.path.join(output_dir, 'checkpoints')
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    file_path = os.path.join(
+        checkpoint_dir, f'S0{subject}_best_model_weights.pth'
+    )
     
     # training loop
     for epoch in range(epochs):
@@ -228,8 +232,8 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
             highest_acc = accuracy
             highestygts = gts
             highestypreds = ypreds
-            # Save the model weights to the file
-            # torch.save(model.state_dict(), file_path)
+            # Save the weights associated with this fold's best held-out accuracy.
+            torch.save(model.state_dict(), file_path)
 
 
         total_accuracy.append(accuracy)
@@ -237,7 +241,7 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
     results = {'subject':subject, 'prediction':highestygts, 'groundtruth':highestypreds}
     df = pd.DataFrame(results)
 
-    df_outpath = './results/model_outputs/'
+    df_outpath = os.path.join(output_dir, 'model_outputs')
         # Create the directory if it doesn't exist
     if not os.path.exists(df_outpath):
         os.makedirs(df_outpath)
@@ -245,7 +249,7 @@ def traintest_loop(train_dataloader, test_dataloader, model, optimizer, schedule
     else:
         print(f"Directory '{df_outpath}' already exists.")
 
-    df.to_csv(f'{df_outpath}S0{subject}_output.csv')
+    df.to_csv(os.path.join(df_outpath, f'S0{subject}_output.csv'))
     
     return val_loss, accuracy, total_accuracy, inference_time, edit_distance, f1_score
 
@@ -266,4 +270,3 @@ def rolling_average(arr, window_size):
         avg = sum(window) / window_size
         rolling_avg.append(avg)
     return rolling_avg
-

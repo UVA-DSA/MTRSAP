@@ -62,8 +62,9 @@ tcn_model_params = {
 
 transformer_params = {
     "d_model": 60,
-    "nhead": 3,
-    "num_layers": 2,
+    "nhead": 2,
+    "num_layers": 3,
+    "batch_first": True,
     "hidden_dim": 128,
     "layer_dim": 4,
     "encoder_params": { #some of these gets updated during runtime based on the feature dimension of the given data
@@ -98,6 +99,11 @@ dataloader_params = {
     "include_image_features": False,
     "normalizer": '',  # ('standardization', 'min-max', 'power', '')
     "step": 1,  # 1 - 30 Hz
+    "recognition_window_mode": "gesture",
+    # "louo" selects the SpatialCNN split matching each held-out subject.
+    # "fixed_split_1" reproduces the historical processed-CSV behavior for
+    # diagnostic comparison and may leak subject information for S03-S09.
+    "spatialcnn_split_mode": "fixed_split_1",
     "context": 9  # 0-nocontext, 1-contextonly, 2-context+kin, 3-imageonly, 4-image+kin, 5-image+kin+context, 6-colin_features, 7- colin+context, 8-colin+kin, 9-colin+kin+context, 10-segonly, 11-kin+seg, 12-kin+seg+context, 13-kin+seg+context+colins, 14-seg+colins
     # hamid -  do not need (1,3,5,7)
     
@@ -130,27 +136,26 @@ dataloader_params = {
 # }
 
 modality_mapping = { # combination of kinematics and state, include_resnet, include_colin, include_segment
-    0: (kinematic_feature_names, False, False, False),  # Kinematic (38)
-    1: (kinematic_feature_names_no_ori, False, False, False),  # Kinematic (14)
-    # 2: (state_variables),  # Context (GT)
-    # 3: colin_features,  # Colins Features
-    # 4: resnet_features,  # ResNet50 Features
-    # 5: segmentation_features,  # Segmentation Masks Features
-    # 6: state_variables + colin_features,  # Context(GT) + Colins Features
-    7: (kinematic_feature_names + state_variables, False, False, False),  # Kinematic (38) + Context(GT)
-    8: (kinematic_feature_names_no_ori + state_variables, False, False, False),  # Kinematic (14) + Context(GT)
-    9: (kinematic_feature_names, False, True, False),  # Kinematic (38) + Colins Features
-    10: (kinematic_feature_names_no_ori, False, True, False),  # Kinematic (14) + Colins Features
-    11: (kinematic_feature_names, True, False, False),  # Kinematic (38) + ResNet50
-    12: (kinematic_feature_names_no_ori, True, False, False),  # Kinematic (14) + ResNet50
-    13: (kinematic_feature_names, False, False, True),  # Kinematic (38) + Segmentation Masks
-    14: (kinematic_feature_names_no_ori, False, False, True),  # Kinematic (14) + Segmentation Masks
-    15: (kinematic_feature_names + state_variables, False, True, False),  # Kinematic (38) + Context(GT) + Colins Features
-    16: (kinematic_feature_names_no_ori + state_variables, False, True, False),  # Kinematic (14) + Context(GT) + Colins Features
-    17: (kinematic_feature_names + state_variables, False, False, True),  # Kinematic (38) + Segmentation Masks + Context(GT)
-    18: (kinematic_feature_names_no_ori + state_variables, False, False, True),  # Kinematic (14) + Segmentation Masks + Context(GT)
-    19: (kinematic_feature_names + state_variables, False, True, True),  # Kinematic (38) + Segmentation Masks + Context(GT) + Colins
-    20: (kinematic_feature_names_no_ori + state_variables, False, True, True),  # Kinematic (14) + Segmentation Masks + Context(GT) + Colins
-    21: (kinematic_feature_names_no_ori, True, False, False),  # Kinematic (14)  + Resnet
+    0: (kinematic_feature_names_jigsaws[38:], False, False, False),  # Kinematic (38)
+    1: (kinematic_feature_names_jigsaws_patient_position, False, False, False),  # Kinematic (14)
+    2: (state_variables, False, False, False),  # Context (GT)
+    3: ([], False, True, False),  # SpatialCNN features
+    4: ([], True, False, False),  # ResNet50 features
+    5: ([], False, False, True),  # Segmentation mask features
+    6: (state_variables, False, True, False),  # Context(GT) + SpatialCNN features
+    7: (kinematic_feature_names_jigsaws[38:] + state_variables, False, False, False),  # Kinematic (38) + Context(GT)
+    8: (kinematic_feature_names_jigsaws_patient_position + state_variables, False, False, False),  # Kinematic (14) + Context(GT)
+    9: (kinematic_feature_names_jigsaws[38:], False, True, False),  # Kinematic (38) + SpatialCNN
+    10: (kinematic_feature_names_jigsaws_patient_position, False, True, False),  # Kinematic (14) + SpatialCNN
+    11: (kinematic_feature_names_jigsaws[38:], True, False, False),  # Kinematic (38) + ResNet50
+    12: (kinematic_feature_names_jigsaws_patient_position, True, False, False),  # Kinematic (14) + ResNet50
+    13: (kinematic_feature_names_jigsaws[38:], False, False, True),  # Kinematic (38) + Segmentation Masks
+    14: (kinematic_feature_names_jigsaws_patient_position, False, False, True),  # Kinematic (14) + Segmentation Masks
+    15: (kinematic_feature_names_jigsaws[38:] + state_variables, False, True, False),  # Kinematic (38) + Context(GT) + SpatialCNN
+    16: (kinematic_feature_names_jigsaws_patient_position + state_variables, False, True, False),  # Kinematic (14) + Context(GT) + SpatialCNN
+    17: (kinematic_feature_names_jigsaws[38:] + state_variables, False, False, True),  # Kinematic (38) + Segmentation Masks + Context(GT)
+    18: (kinematic_feature_names_jigsaws_patient_position + state_variables, False, False, True),  # Kinematic (14) + Segmentation Masks + Context(GT)
+    19: (kinematic_feature_names_jigsaws[38:] + state_variables, False, True, True),  # Kinematic (38) + Segmentation Masks + Context(GT) + SpatialCNN
+    20: (kinematic_feature_names_jigsaws_patient_position + state_variables, False, True, True),  # Kinematic (14) + Segmentation Masks + Context(GT) + SpatialCNN
+    21: (kinematic_feature_names_jigsaws_patient_position, True, False, False),  # Kinematic (14) + ResNet50
 }
-

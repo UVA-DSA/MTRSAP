@@ -5,6 +5,9 @@ new_dataset/
 
 results/
 
+logs
+notes
+
 
 model_weights/*
 

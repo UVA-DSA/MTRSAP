@@ -19,11 +19,12 @@ class PositionalEncoding(nn.Module):
             pe[:, 1::2] = torch.cos(position * div_term)[:,0:-1]
         else:
             pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
+        # Recognition tensors are batch-first: (batch, time, features).
+        x = x + self.pe[:, :x.size(1), :]
         return self.dropout(x)
     
 class GlobalMaxPooling1D(nn.Module):
@@ -129,10 +130,14 @@ class CNN_Decoder(nn.Module):
     
 class TransformerModel(nn.Module):
     
-    def __init__(self, input_dim, output_dim, d_model, nhead, num_layers, hidden_dim, layer_dim,encoder_params, decoder_params,dropout=0.01):
+    def __init__(self, input_dim, output_dim, d_model, nhead, num_layers, hidden_dim, layer_dim,
+                 encoder_params, decoder_params, dropout=0.01, batch_first=True):
         super().__init__()
         self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout), num_layers=num_layers
+            nn.TransformerEncoderLayer(
+                d_model=d_model, nhead=nhead, dropout=dropout, batch_first=batch_first
+            ),
+            num_layers=num_layers
 
         )
         

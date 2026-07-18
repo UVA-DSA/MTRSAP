@@ -52,14 +52,15 @@ class LOUO_Dataset(Dataset):
                 step: int = 0,
                 onehot: bool = False,
                 class_names: List[str] = [],
-                feature_names: List[str] = [],
-                trajectory_feature_names: List[str] = [],
+                feature_names: List[str] = None,
+                trajectory_feature_names: List[str] = None,
                 resnet_files_path: List[str] = [],
                 colin_files_path: List[str] = [],
                 segmentation_files_path: List[str] = [],
                 normalizer: object = None, # (normalization_object of the type['standardization', 'min-max', 'power'])
                 single_window_label: bool = False, # instead of frame-wise labels, return a single label for a window
                 sliding_window: bool = True, # slide the window by 1 timestep, or jump the window by `observation_window`
+                recognition_window_mode: str = "unified",
             ):
         
         self.kin_files_path = kin_files_path
@@ -71,6 +72,7 @@ class LOUO_Dataset(Dataset):
         self.target_names = class_names
         self.feature_names_ = copy.deepcopy(feature_names)
         self.sliding_window = sliding_window
+        self.recognition_window_mode = recognition_window_mode
         self.le = preprocessing.LabelEncoder()
         self.onehot = onehot
         if onehot:
@@ -83,6 +85,7 @@ class LOUO_Dataset(Dataset):
         (self.X, self.Y) = self._load_data() 
         self.feature_names = self.feature_names_
 
+        trajectory_feature_names = trajectory_feature_names or []
         self.traj_features_indices = [self.feature_names.index(feature) for feature in trajectory_feature_names]
 
         # feature normalization
@@ -153,7 +156,11 @@ class LOUO_Dataset(Dataset):
             if os.path.isfile(kinematics_path) and kinematics_path.endswith('.csv'):
                 kinematics_data = pd.read_csv(kinematics_path)
 
-                feature_names = kinematics_data.columns.to_list()[:-1] if not self.feature_names_ else self.feature_names_
+                feature_names = (
+                    kinematics_data.columns.to_list()[:-1]
+                    if self.feature_names_ is None
+                    else self.feature_names_
+                )
                 kin_data = kinematics_data.loc[:, feature_names]
                 kin_label = kinematics_data.iloc[:,-1] # last column is always taken to be the target class
 
@@ -181,7 +188,7 @@ class LOUO_Dataset(Dataset):
                         resnet_features = resnet_features[::self.step]
                     if self.segmentation_files_path:
                         segmentation_features = segmentation_features[::self.step]
-                
+
                 # limit by the length of the smaller tensor, image or kin
                 last_index = len(kin_data)
                 if self.resnet_files_path:
@@ -260,6 +267,9 @@ class LOUO_Dataset(Dataset):
     
     def __len__(self):
         # this should return the size of the dataset
+        if self.recognition_window_mode == "gesture":
+            return self.Y.shape[0] // self.observation_window_size
+
         len_ =  self.Y.shape[0] - self.observation_window_size - self.prediction_window_size
         if not self.sliding_window:
             len_ = math.floor(len_//self.observation_window_size)
@@ -267,6 +277,23 @@ class LOUO_Dataset(Dataset):
     
     # this should return one sample from the dataset
     def __getitem__(self, idx):
+        if self.recognition_window_mode == "gesture":
+            start_idx = idx * self.observation_window_size
+            end_index = start_idx + self.observation_window_size
+            features = self.X[start_idx:end_index]
+            target = self.Y[start_idx:end_index]
+            # Preserve the gesture branch's fixed-size auxiliary slices. These
+            # tensors are not consumed by recognition training or evaluation.
+            future_start = idx + self.observation_window_size + 1
+            gesture_pred_target = self.Y[
+                future_start:future_start + self.prediction_window_size
+            ]
+            traj_pred_target = self.X[
+                future_start:future_start + self.prediction_window_size,
+                self.traj_features_indices,
+            ]
+            return features, target, gesture_pred_target, traj_pred_target
+
         start_idx = idx + 1 if self.sliding_window else idx*self.observation_window_size + 1
         end_index = start_idx + self.observation_window_size
         
@@ -327,6 +354,3 @@ class LOUO_Dataset(Dataset):
             p_batch = P
 
         return (x_batch, y_batch, yy_batch, p_batch)
-
-
-                

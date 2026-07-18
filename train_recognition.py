@@ -11,6 +11,7 @@ from utils import json_to_csv
 import datetime
 import argparse
 import os
+from copy import deepcopy
 
 
 torch.manual_seed(0)
@@ -39,6 +40,13 @@ context = args.modality
 task = args.task
 # verbose_mode = args.verbose
 
+run_timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+job_id = os.environ.get("SLURM_JOB_ID", "local")
+run_name = f"{run_timestamp}_{model_name}_job-{job_id}"
+run_results_dir = os.path.join(
+    "results", "recognition", task, f"modality_{context}", run_name
+)
+
 
 # manual seeding ensure reproducibility
 # torch.manual_seed(0)
@@ -52,6 +60,12 @@ if context in modality_mapping:
 else:
     print("Invalid modality choice!")
     exit(-1)
+
+# Recognition does not consume future trajectories. Only request trajectory
+# columns when the selected input modality actually contains them.
+trajectory_features_for_modality = [
+    feature for feature in trajectory_feature_names if feature in Features
+]
 
 if task not in class_names:
     parser.error(f"Unknown task '{task}'. Choose one of: {', '.join(class_names)}")
@@ -69,6 +83,43 @@ if include_segmentation_features:
 missing_paths = [f"{label}: {path}" for label, path in required_paths.items() if not os.path.isdir(path)]
 if missing_paths:
     parser.error("Required data directories do not exist:\n  " + "\n  ".join(missing_paths))
+
+os.makedirs(run_results_dir, exist_ok=False)
+print(f"Run results directory: {run_results_dir}")
+
+run_config = {
+    "timestamp": run_timestamp,
+    "slurm_job_id": job_id,
+    "task": task,
+    "modality": context,
+    "model": model_name,
+    "model_class": (
+        "models.recognition.transtcn.TransformerModel"
+        if model_name == "transformer"
+        else "models.recognition.compasstcn.TCN"
+    ),
+    "dataloader": dataloader,
+    "num_features": len(Features),
+    "feature_names": Features,
+    "include_resnet_features": include_resnet_features,
+    "include_spatialcnn_features": include_colin_features,
+    "include_segmentation_features": include_segmentation_features,
+    "recognition_window_mode": dataloader_params["recognition_window_mode"],
+    "spatialcnn_split_mode": dataloader_params["spatialcnn_split_mode"],
+    "transformer_batch_first": transformer_params.get("batch_first", False),
+    "seed_strategy": "gesture_branch_single_process_seed",
+    "source_compatibility": "origin/gesture with corrected batch-first attention",
+    "configured_model_params": (
+        deepcopy(transformer_params)
+        if model_name == "transformer"
+        else deepcopy(tcn_model_params)
+    ),
+    "learning_params": learning_params,
+    "dataloader_params": dataloader_params,
+    "data_paths": data_paths,
+}
+with open(os.path.join(run_results_dir, "run_config.json"), "w") as outfile:
+    json.dump(run_config, outfile, indent=4, default=str)
  
 epochs = learning_params["epochs"]
 observation_window = dataloader_params["observation_window"],
@@ -85,7 +136,7 @@ elif dataloader == "v2":
                                                         one_hot=dataloader_params["one_hot"],
                                                         class_names=class_names[task],
                                                         feature_names=Features,
-                                                        trajectory_feature_names=trajectory_feature_names,
+                                                        trajectory_feature_names=trajectory_features_for_modality,
                                                         include_resnet_features=include_resnet_features,
                                                         include_segmentation_features=include_segmentation_features,
                                                         include_colin_features=include_colin_features,
@@ -93,7 +144,9 @@ elif dataloader == "v2":
                                                         normalizer=dataloader_params["normalizer"],
                                                         step=dataloader_params["step"],
                                                         train_sliding_window=False,
-                                                        data_paths=data_paths)
+                                                        data_paths=data_paths,
+                                                        recognition_window_mode=dataloader_params["recognition_window_mode"],
+                                                        spatialcnn_split_mode=dataloader_params["spatialcnn_split_mode"])
     # train_dataloader, valid_dataloader = get_dataloaders([task],
     #                                                  dataloader_params["user_left_out"],
     #                                                  dataloader_params["observation_window"],
@@ -133,14 +186,24 @@ input_dim = features
 
 print("Input Features:",input_dim, "Output Classes:",output_dim)
 
+# Record the effective dimensions after all external modality features have
+# been loaded and concatenated. These can differ from len(Features), e.g. for
+# ResNet, SpatialCNN, and segmentation modalities.
+effective_model_params = (
+    deepcopy(transformer_params)
+    if model_name == "transformer"
+    else deepcopy(tcn_model_params)
+)
+if model_name == "transformer":
+    effective_model_params["encoder_params"]["in_channels"] = input_dim
+    effective_model_params["decoder_params"]["out_channels"] = output_dim
+    effective_model_params["dropout"] = 0.01
 
-### DEFINE MODEL HERE ###
-# model_name = 'tcn' 
-# model_name = 'transformer'
-
-model,optimizer,scheduler,criterion = initiate_model(input_dim=input_dim,output_dim=output_dim,transformer_params=transformer_params,learning_params=learning_params, tcn_model_params=tcn_model_params, model_name=model_name)
-
-print(model)
+run_config["actual_input_dim"] = input_dim
+run_config["output_dim"] = output_dim
+run_config["effective_model_params"] = effective_model_params
+with open(os.path.join(run_results_dir, "run_config.json"), "w") as outfile:
+    json.dump(run_config, outfile, indent=4, default=str)
 
 
 ### Subjects 
@@ -188,7 +251,7 @@ for i in range(REPEAT):
                                                         one_hot=dataloader_params["one_hot"],
                                                         class_names=class_names[task],
                                                         feature_names=Features,
-                                                        trajectory_feature_names=trajectory_feature_names,
+                                                        trajectory_feature_names=trajectory_features_for_modality,
                                                         include_resnet_features=include_resnet_features,
                                                         include_segmentation_features=include_segmentation_features,
                                                         include_colin_features=include_colin_features,
@@ -196,10 +259,12 @@ for i in range(REPEAT):
                                                         normalizer=dataloader_params["normalizer"],
                                                         step=dataloader_params["step"],
                                                         train_sliding_window=False,
-                                                        data_paths=data_paths)
+                                                        data_paths=data_paths,
+                                                        recognition_window_mode=dataloader_params["recognition_window_mode"],
+                                                        spatialcnn_split_mode=dataloader_params["spatialcnn_split_mode"])
                 
 
-            val_loss,acc, all_acc, inference_time, edit_distance, f1_score = traintest_loop(train_dataloader,valid_dataloader,model,optimizer,scheduler,criterion, epochs, dataloader, subject, modality=context)
+            val_loss,acc, all_acc, inference_time, edit_distance, f1_score = traintest_loop(train_dataloader,valid_dataloader,model,optimizer,scheduler,criterion, epochs, dataloader, subject, modality=context, output_dir=run_results_dir)
             
             rolling_avg = rolling_average(all_acc,3)
             # print('Rolling average:',rolling_avg)
@@ -209,17 +274,9 @@ for i in range(REPEAT):
 
 if(RECORD_RESULTS):
     
-    json_file = 'train_results'
-    with open(f"./results/{json_file}.json", "w") as outfile:
+    json_file = 'results'
+    with open(os.path.join(run_results_dir, f"{json_file}.json"), "w") as outfile:
         json_object = json.dumps(accuracy, indent=4)
         outfile.write(json_object)
-        
 
-    current_datetime = datetime.datetime.now()
-
-    # Format the datetime as a string to be used as a filename
-    formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-
-    csv_name = f'Train_{task}_{model_name}_{formatted_datetime}_MODALITY_{context}_num_features{len(Features)}_LOUO_window{dataloader_params["observation_window"]}.csv'
-         
-    json_to_csv(csv_name, json_file)
+    json_to_csv("summary.csv", json_file, results_dir=run_results_dir)
